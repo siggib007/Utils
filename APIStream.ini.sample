@@ -1,0 +1,16 @@
+# This is a configuration file for Qualys API scripts
+# Created 11/1/2017 by Siggi Bjarnason
+
+# Base API URL and other base API requirements
+APIBaseURL=https://qualysapi.qg2.apps.qualys.com
+APIRequestHeader=MyAPITest
+
+#Qualys portal login authentication.
+QUserID=
+QUserPWD=
+
+#Various config items
+SaveLocation=C:\temp
+NotificationURL=https://slack.com/api/chat.postMessage
+NotifyChannel=W8FGMDNKF
+NotifyToken=xoxb-320383731716-XqHkBgzj3sGh1SWwZKn609Nt
