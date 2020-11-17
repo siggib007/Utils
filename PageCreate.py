@@ -283,6 +283,7 @@ def RemovePage():
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] == 0:
     LogEntry ("Page {} not found in tblmenu".format(strFileName))
+    iMenuID = -15
   else:
     iMenuID = lstReturn[1][0][0]
     LogEntry ("MenuID: {}".format(iMenuID))
@@ -322,8 +323,14 @@ def RemovePage():
 
   # Delete the actual file
   strDest = strHomeDir + strFileName
-  os.remove(strDest)
-  LogEntry("File {} deleted".format(strFileName))
+  try:
+    os.remove(strDest)
+  except IOError as e:
+    LogEntry("Failed to delete {}. Error:{}".format(strDest,e))
+  except Exception as err:
+    LogEntry("Unexpected Error: {}".format(err))
+  else:
+    LogEntry("File {} deleted".format(strFileName))
 
 
 def main():
