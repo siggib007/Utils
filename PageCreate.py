@@ -33,7 +33,12 @@ def processConf():
   global strDBUser
   global strDBPWD
   global strInitialDB
-
+  global strTableName
+  global strFieldList
+  global strHeaders
+  global strFileName
+  global strTitle
+  global strMenu
 
   LogEntry ("Looking for configuration file: {}".format(strConf_File))
   if os.path.isfile(strConf_File):
@@ -70,6 +75,20 @@ def processConf():
         strDBPWD = strFullValue
       if strVarName == "InitialDB":
         strInitialDB = strValue
+
+      if strVarName == "TableName":
+        strTableName = strValue
+      if strVarName == "FieldList":
+        strFieldList = strValue
+      if strVarName == "TableHeader":
+        strHeaders = strFullValue
+      if strVarName == "FileName":
+        strFileName = strValue
+      if strVarName == "PageTitle":
+        strTitle = strFullValue
+      if strVarName == "MenuName":
+        strMenu = strValue
+
 
   LogEntry ("Done processing configuration, moving on")
 
@@ -209,17 +228,66 @@ def main():
   dbConn = ""
   dbConn = SQLConn (strServer,strDBUser,strDBPWD,strInitialDB)
 
-  strSQL = "SELECT * FROM vulnmgmt.tblmbenvironments;"
+  strSQL = ("INSERT INTO NetTools.tbldynamic (vcTableName,vcFieldList,vcHeaders, "
+            " vcPageName,vcPageTitle) VALUES ('{}','{}','{}','{}','{}');".format(strTableName,
+            strFieldList,strHeaders,strFileName,strTitle))
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] != 1:
+    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+  else:
+    LogEntry ("Successfully inserted into tbldynamic")
+
+  strSQL = ("INSERT INTO NetTools.tblmenu (vcTitle,vcLink,vcHeader) "
+            " VALUES ('{}','{}','{}');".format(strMenu,strFileName,strMenu))
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] != 1:
+    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+  else:
+    LogEntry ("Successfully inserted into tblMenu")
+  
+  strSQL = "SELECT iMenuID FROM NetTools.tblmenu WHERE vcLink = '{}';".format(strFileName)
   lstReturn = SQLQuery (strSQL,dbConn)
   if not ValidReturn(lstReturn):
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] == 0:
-    LogEntry ("No data returned")
+    LogEntry ("Page {} not found in tblmenu".format(strFileName))
   else:
-    strLocation = lstReturn[1][4][1]
-    LogEntry ("Location: {}".format(strLocation))
+    iMenuID = lstReturn[1][0][0]
+    LogEntry ("MenuID: {}".format(iMenuID))
 
+  iMaxOrder = 0
+  strSQL = "SELECT MAX(iMenuOrder) FROM NetTools.tblmenutype WHERE iMenuOrder < 30;"
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] == 0:
+    LogEntry ("max not possible, how weird")
+  else:
+    iMaxOrder = lstReturn[1][0][0]
+    LogEntry ("Max Menu Order: {}".format(iMaxOrder))
+  iMaxOrder += 1
+
+  strSQL = ("INSERT INTO NetTools.tblmenutype (iMenuID,vcMenuType,iMenuOrder,iSubOfMenu) "
+            " VALUES ({},'head',{},0);".format(iMenuID,iMaxOrder))
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] != 1:
+    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+  else:
+    LogEntry ("Successfully inserted into tblmenutype")
+
+
+# copy files 
 
   dtNow = time.asctime()
   LogEntry ("Completed at {}".format(dtNow))
