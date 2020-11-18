@@ -34,17 +34,8 @@ def processConf():
   global strDBUser
   global strDBPWD
   global strInitialDB
-  global strTableName
-  global strFieldList
-  global strHeaders
-  global strFileName
-  global strTitle
-  global strMenu
   global strHomeDir
   global strSourceFile
-  global strAction
-
-  strAction = "Add"
 
   LogEntry ("Looking for configuration file: {}".format(strConf_File))
   if os.path.isfile(strConf_File):
@@ -81,28 +72,15 @@ def processConf():
         strDBPWD = strFullValue
       if strVarName == "InitialDB":
         strInitialDB = strValue
-      if strVarName == "TableName":
-        strTableName = strValue
-      if strVarName == "FieldList":
-        strFieldList = strValue
-      if strVarName == "TableHeader":
-        strHeaders = strFullValue
-      if strVarName == "FileName":
-        strFileName = strValue
-      if strVarName == "PageTitle":
-        strTitle = strFullValue
-      if strVarName == "MenuName":
-        strMenu = strValue
       if strVarName == "HomeDirectory":
         strHomeDir = strFullValue
       if strVarName == "SourceFile":
         strSourceFile = strValue
-      if strVarName == "Action":
-        strAction = strValue
 
   strHomeDir = strHomeDir.replace("\\","/")
   if strHomeDir[-1:] != "/":
     strHomeDir+= "/"
+
   LogEntry ("Done processing configuration, moving on")
 
 def isInt (CheckValue):
@@ -198,146 +176,11 @@ def ValidReturn(lsttest):
   else:
     return False
 
-def AddPage():
-  # Defining the query to be shown on the page
-  strSQL = ("INSERT INTO NetTools.tbldynamic (vcTableName,vcFieldList,vcHeaders, "
-            " vcPageName,vcPageTitle) VALUES ('{}','{}','{}','{}','{}');".format(strTableName,
-            strFieldList,strHeaders,strFileName,strTitle))
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] != 1:
-    LogEntry("While inserting into tbldynamic. Records affected {}, expected 1 record affected".format(lstReturn[0]))
-  else:
-    LogEntry ("Successfully inserted into tbldynamic")
-
-  # Adding new page to the Menu
-  strSQL = ("INSERT INTO NetTools.tblmenu (vcTitle,vcLink,vcHeader) "
-            " VALUES ('{}','{}','{}');".format(strMenu,strFileName,strMenu))
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] != 1:
-    LogEntry("While inserting into tblMenu Records affected {}, expected 1 record affected".format(lstReturn[0]))
-  else:
-    LogEntry ("Successfully inserted into tblMenu")
-  
-  # Retrieving the menu ID of the new page
-  strSQL = "SELECT iMenuID FROM NetTools.tblmenu WHERE vcLink = '{}';".format(strFileName)
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] == 0:
-    LogEntry ("Page {} not found in tblmenu".format(strFileName))
-  else:
-    iMenuID = lstReturn[1][0][0]
-    LogEntry ("MenuID: {}".format(iMenuID))
-
-  # Calculate the next position number
-  iMaxOrder = 0
-  strSQL = "SELECT MAX(iMenuOrder) FROM NetTools.tblmenutype WHERE iMenuOrder < 30;"
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] == 0:
-    LogEntry ("max not possible, how weird")
-  else:
-    iMaxOrder = lstReturn[1][0][0]
-    LogEntry ("Max Menu Order: {}".format(iMaxOrder))
-  iMaxOrder += 1
-
-  # specifying the position of the new menu item
-  strSQL = ("INSERT INTO NetTools.tblmenutype (iMenuID,vcMenuType,iMenuOrder,iSubOfMenu) "
-            " VALUES ({},'head',{},0);".format(iMenuID,iMaxOrder))
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] != 1:
-    LogEntry("While inserting into tblmenutype Records affected {}, expected 1 record affected".format(lstReturn[0]))
-  else:
-    LogEntry ("Successfully inserted into tblmenutype")
-
-  # copy files from template file to the new file
-  strSource = strHomeDir + strSourceFile
-  strDest = strHomeDir + strFileName
-  try:
-    shutil.copyfile(strSource,strDest)
-  except IOError as e:
-    LogEntry("Failed to copy {} to {}. Error:{}".format(strSource,strDest,e))
-  except Exception as err:
-    LogEntry("Unexpected Error: {}".format(err))
-
-  LogEntry("Successfully copied {} to {}.".format(strSource,strDest))
-
-def RemovePage():
-  # Retrieving the menu ID of the page to delete
-  strSQL = "SELECT iMenuID FROM NetTools.tblmenu WHERE vcLink = '{}';".format(strFileName)
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] == 0:
-    LogEntry ("Page {} not found in tblmenu".format(strFileName))
-    iMenuID = -15
-  else:
-    iMenuID = lstReturn[1][0][0]
-    LogEntry ("MenuID: {}".format(iMenuID))
-
-  # Deleting Menu Positioning entry
-  strSQL = ("DELETE FROM NetTools.tblmenutype WHERE iMenuID = {};".format(iMenuID))
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] != 1:
-    LogEntry("Attempting to delete from tblmenutype. Records affected {}, expected 1 record affected".format(lstReturn[0]))
-  else:
-    LogEntry ("Successfully deleted from tblmenutype")
-
-  # Deleting Menu entry
-  strSQL = ("DELETE FROM NetTools.tblmenu WHERE iMenuID = {};".format(iMenuID))
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] != 1:
-    LogEntry("Attempting to delete from tblmenu. Records affected {}, expected 1 record affected".format(lstReturn[0]))
-  else:
-    LogEntry ("Successfully deleted from tblmenu")
-
-  # Deleting Menu entry
-  strSQL = ("DELETE FROM NetTools.tbldynamic WHERE vcPageName = '{}';".format(strFileName))
-  lstReturn = SQLQuery (strSQL,dbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] != 1:
-    LogEntry("Attempting to delete from tbldynamic. Records affected {}, expected 1 record affected".format(lstReturn[0]))
-  else:
-    LogEntry ("Successfully deleted from tbldynamic")
-
-  # Delete the actual file
-  strDest = strHomeDir + strFileName
-  try:
-    os.remove(strDest)
-  except IOError as e:
-    LogEntry("Failed to delete {}. Error:{}".format(strDest,e))
-  except Exception as err:
-    LogEntry("Unexpected Error: {}".format(err))
-  else:
-    LogEntry("File {} deleted".format(strFileName))
-
 def main():
   global objLogOut
   global strConf_File
   global strScriptName
   global strScriptHost
-  global dbConn
 
   strBaseDir = os.path.dirname(sys.argv[0])
   strRealPath = os.path.realpath(sys.argv[0])
@@ -376,12 +219,27 @@ def main():
   dbConn = ""
   dbConn = SQLConn (strServer,strDBUser,strDBPWD,strInitialDB)
 
-  if strAction == "DELETE":
-    LogEntry ("Delete action specified")
-    RemovePage()
+  strSQL = "SELECT vcPageName FROM NetTools.tbldynamic;"
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] == 0:
+    LogEntry ("No data returned")
   else:
-    LogEntry ("Action specified is not DELETE in all caps, so doing an addition")
-    AddPage()
+    LogEntry ("Retrived {} rows".format(lstReturn[0]))
+
+  strSource = strHomeDir + strSourceFile
+  for dbRow in lstReturn[1]:
+    strDest = strHomeDir + dbRow[0]
+    if strSource != strDest:
+      try:
+        shutil.copyfile(strSource,strDest)
+      except IOError as e:
+        LogEntry("Failed to copy {} to {}. Error:{}".format(strSource,strDest,e))
+      except Exception as err:
+        LogEntry("Unexpected Error: {}".format(err))
+      LogEntry("Successfully copied {} to {}.".format(strSource,strDest))
 
   dtNow = time.asctime()
   LogEntry ("Completed at {}".format(dtNow))
