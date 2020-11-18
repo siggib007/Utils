@@ -1,5 +1,5 @@
 '''
-Script to deploy new database table view to VMInfo web server
+Script to redeploy dynamic database table view pages to VMInfo web server
 Author Siggi Bjarnason Copyright 2020
 
 Following packages need to be installed as administrator
@@ -207,7 +207,7 @@ def main():
   strScriptHost = platform.node().upper()
 
 
-  print ("This is a script to create a new dynamic database table on VMInfo. " 
+  print ("This is a script to redeploy dynamic database table view files on VMInfo. " 
           " This is running under Python Version {}".format(strVersion))
   print ("Running from: {}".format(strRealPath))
   dtNow = time.asctime()
