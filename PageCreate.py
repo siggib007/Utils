@@ -208,7 +208,7 @@ def AddPage():
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] != 1:
-    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+    LogEntry("While inserting into tbldynamic. Records affected {}, expected 1 record affected".format(lstReturn[0]))
   else:
     LogEntry ("Successfully inserted into tbldynamic")
 
@@ -220,7 +220,7 @@ def AddPage():
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] != 1:
-    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+    LogEntry("While inserting into tblMenu Records affected {}, expected 1 record affected".format(lstReturn[0]))
   else:
     LogEntry ("Successfully inserted into tblMenu")
   
@@ -258,7 +258,7 @@ def AddPage():
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] != 1:
-    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+    LogEntry("While inserting into tblmenutype Records affected {}, expected 1 record affected".format(lstReturn[0]))
   else:
     LogEntry ("Successfully inserted into tblmenutype")
 
@@ -295,7 +295,7 @@ def RemovePage():
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] != 1:
-    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+    LogEntry("Attempting to delete from tblmenutype. Records affected {}, expected 1 record affected".format(lstReturn[0]))
   else:
     LogEntry ("Successfully deleted from tblmenutype")
 
@@ -306,9 +306,9 @@ def RemovePage():
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] != 1:
-    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+    LogEntry("Attempting to delete from tblmenu. Records affected {}, expected 1 record affected".format(lstReturn[0]))
   else:
-    LogEntry ("Successfully deleted from tblmenutype")
+    LogEntry ("Successfully deleted from tblmenu")
 
   # Deleting Menu entry
   strSQL = ("DELETE FROM NetTools.tbldynamic WHERE vcPageName = '{}';".format(strFileName))
@@ -317,9 +317,9 @@ def RemovePage():
     LogEntry ("Unexpected: {}".format(lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] != 1:
-    LogEntry("Records affected {}, expected 1 record affected".format(lstReturn[0]))
+    LogEntry("Attempting to delete from tbldynamic. Records affected {}, expected 1 record affected".format(lstReturn[0]))
   else:
-    LogEntry ("Successfully deleted from tblmenutype")
+    LogEntry ("Successfully deleted from tbldynamic")
 
   # Delete the actual file
   strDest = strHomeDir + strFileName
