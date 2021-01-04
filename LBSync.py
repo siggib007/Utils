@@ -14,6 +14,7 @@ import time
 import requests
 import platform
 import json
+import pymysql
 
 # End imports
 
@@ -44,7 +45,84 @@ def LogEntry(strMsg):
 def CleanExit(strCause):
   LogEntry("{} is exiting abnormally on {} {}".format(strScriptName,strScriptHost, strCause))
   objLogOut.close()
+  print ("objLogOut closed")
+  if dbConn != "":
+    dbConn.close()
+  print ("dbConn closed")  
+  if VSVdbConn != "":
+    VSVdbConn.close()
+  print ("VSVdbConn closed")  
   sys.exit(9)
+
+def DBClean(strText):
+  if strText is None:
+    return ""
+  strTemp = strText.encode("ascii","ignore")
+  strTemp = strTemp.decode("ascii","ignore")
+  strTemp = strTemp.replace("\\","\\\\")
+  strTemp = strTemp.replace("'","\"")
+  return strTemp
+
+def SQLConn (strServer,strDBUser,strDBPWD,strInitialDB):
+  try:
+    # Open database connection
+    return pymysql.connect(strServer,strDBUser,strDBPWD,strInitialDB)
+  except pymysql.err.InternalError as err:
+    print ("Error: unable to connect: {}".format(err))
+    sys.exit(5)
+  except pymysql.err.OperationalError as err:
+    print ("Operational Error: unable to connect: {}".format(err))
+    sys.exit(5)
+  except pymysql.err.ProgrammingError as err:
+    print ("Programing Error: unable to connect: {}".format(err))
+    sys.exit(5)
+
+def SQLQuery (strSQL,db):
+  try:
+    # prepare a cursor object using cursor() method
+    dbCursor = db.cursor()
+    # Execute the SQL command
+    dbCursor.execute(strSQL)
+    # Count rows
+    iRowCount = dbCursor.rowcount
+    if strSQL[:6].lower() == "select" or strSQL[:4].lower() == "call":
+      dbResults = dbCursor.fetchall()
+    else:
+      db.commit()
+      dbResults = ()
+    return [iRowCount,dbResults]
+  except pymysql.err.InternalError as err:
+    if strSQL[:6].lower() != "select":
+      db.rollback()
+    return "Internal Error: unable to execute: {}\n{}".format(err,strSQL)
+  except pymysql.err.ProgrammingError as err:
+    if strSQL[:6].lower() != "select":
+      db.rollback()
+    return "Programing Error: unable to execute: {}\n{}".format(err,strSQL)
+  except pymysql.err.OperationalError as err:
+    if strSQL[:6].lower() != "select":
+      db.rollback()
+    return "Programing Error: unable to execute: {}\n{}".format(err,strSQL)
+  except pymysql.err.IntegrityError as err:
+    if strSQL[:6].lower() != "select":
+      db.rollback()
+    return "Integrity Error: unable to execute: {}\n{}".format(err,strSQL)
+  except pymysql.err.DataError as err:
+    if strSQL[:6].lower() != "select":
+      db.rollback()
+    return "Data Error: unable to execute: {}\n{}".format(err,strSQL)
+
+def ValidReturn(lsttest):
+  if isinstance(lsttest,list):
+    if len(lsttest) == 2:
+      if isinstance(lsttest[0],int) and isinstance(lsttest[1],tuple):
+        return True
+      else:
+        return False
+    else:
+      return False
+  else:
+    return False
 
 def ValidateIP(strToCheck):
 	Quads = strToCheck.split(".")
@@ -65,7 +143,7 @@ def ValidateIP(strToCheck):
 
 	return True
 
-def FetchF5Data():
+def FetchF5Data(strF5URL):
   objFileOut = open("c:/temp/VSViewOut.csv","w",1)
   strF5File = FetchTextFile(strF5URL)
   lstF5json = strF5File.splitlines()
@@ -130,11 +208,67 @@ def FetchF5Data():
     objFileOut.write(strOut)
     LogEntry ("Node: {} VS: {}".format(strNodeName,strVSName))
 
+def processConf(strConf_File):
+
+  LogEntry ("Looking for configuration file: {}".format(strConf_File))
+  if os.path.isfile(strConf_File):
+    LogEntry ("Configuration File exists")
+  else:
+    LogEntry ("Can't find configuration file {}, make sure it is the same directory "
+      "as this script and named the same with ini extension".format(strConf_File))
+    LogEntry("{} on {}: Exiting.".format (strScriptName,strScriptHost))
+    objLogOut.close()
+    sys.exit(9)
+
+  strLine = "  "
+  dictConfig = {}
+  LogEntry ("Reading in configuration")
+  objINIFile = open(strConf_File,"r")
+  strLines = objINIFile.readlines()
+  objINIFile.close()
+
+  for strLine in strLines:
+    strLine = strLine.strip()
+    iCommentLoc = strLine.find("#")
+    if iCommentLoc > -1:
+      strLine = strLine[:iCommentLoc].strip()
+    else:
+      strLine = strLine.strip()
+    if "=" in strLine:
+      strConfParts = strLine.split("=")
+      strVarName = strConfParts[0].strip()
+      strValue = strConfParts[1].strip()
+      dictConfig[strVarName] = strValue
+      if strVarName == "include":
+        LogEntry ("Found include directive: {}".format(strValue))
+        strValue = strValue.replace("\\","/")
+        if strValue[:1] == "/" or strValue[1:3] == ":/":
+          LogEntry("include directive is absolute path, using as is")
+        else:
+          strValue = strBaseDir + strValue
+          LogEntry("include directive is relative path,"
+            " appended base directory. {}".format(strValue))
+        if os.path.isfile(strValue):
+          LogEntry ("file is valid")
+          objINIFile = open(strValue,"r")
+          strLines += objINIFile.readlines()
+          objINIFile.close()
+        else:
+          LogEntry ("invalid file in include directive")
+
+  LogEntry ("Done processing configuration, moving on")
+  return dictConfig
 
 def main ():
   global objLogOut
   global strScriptName
   global strScriptHost
+  global strBaseDir
+  global dbConn
+  global VSVdbConn
+
+  dbConn = ""
+  VSVdbConn = ""
 
   strBaseDir = os.path.dirname(sys.argv[0])
   strBaseDir = strBaseDir.replace("\\", "/")
@@ -142,7 +276,7 @@ def main ():
   strRealPath = strRealPath.replace("\\","/")
   strScriptName = os.path.basename(sys.argv[0])
   iLoc = sys.argv[0].rfind(".")
-  # strConf_File = sys.argv[0][:iLoc] + ".ini"
+  strConf_File = sys.argv[0][:iLoc] + ".ini"
   
 
   if strBaseDir == "":
@@ -171,8 +305,98 @@ def main ():
   print ("The time now is {}".format(dtNow))
   print ("Logs saved to {}".format(strLogFile))
 
-  FetchF5Data()
+  dictConfig = processConf(strConf_File)
 
+  if "F5URL" in dictConfig:
+    strF5URL = dictConfig["F5URL"]
+  else:
+    CleanExit("No F5 URL")
+  LogEntry ("Found F5 URL: {} ".format(strF5URL))
+
+  if "VSVServer" in dictConfig:
+    strVSVServer = dictConfig["VSVServer"]
+  else:
+    CleanExit("No VSVServer provided")
+
+  if "VSVUser" in dictConfig:
+    strVSVUser = dictConfig["VSVUser"]
+  else:
+    CleanExit("No VSVUser provided")
+
+  if "VSVPWD" in dictConfig:
+    strVSVPWD = dictConfig["VSVPWD"]
+  else:
+    CleanExit("No VSVPWD provided")
+
+  if "VSVInitialDB" in dictConfig:
+    strVSVInitialDB = dictConfig["VSVInitialDB"]
+  else:
+    CleanExit("No VSVInitialDB provided")
+
+  if "Server" in dictConfig:
+    strDBServer = dictConfig["Server"]
+  else:
+    CleanExit("No DB Server provided")
+
+  if "dbUser" in dictConfig:
+    strDBUser = dictConfig["dbUser"]
+  else:
+    CleanExit("No dbUser provided")
+
+  if "dbPWD" in dictConfig:
+    strDBPWD = dictConfig["dbPWD"]
+  else:
+    CleanExit("No dbPWD provided")
+
+  if "InitialDB" in dictConfig:
+    strInitialDB = dictConfig["InitialDB"]
+  else:
+    CleanExit("No InitialDB provided")
+
+  dbConn = SQLConn (strDBServer,strDBUser,strDBPWD,strInitialDB)
+  VSVdbConn = SQLConn (strVSVServer,strVSVUser,strVSVPWD,strVSVInitialDB)
+
+  strSQL = "select vcSiteCode from tblSiteCodes where vcSNLocation = '{}';".format("Orlando MSC")
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] == 0:
+    strLocCode = "unknown"
+    LogEntry ("location {} not in location table".format("Orlando MSC"))
+  elif lstReturn[0] > 1:
+    LogEntry ("More than one instance of {} in location table,"
+      " picking the first one".format("Orlando MSC"))
+    strLocCode = (lstReturn[1][0][0])
+  else:
+    strLocCode = (lstReturn[1][0][0])
+  
+  LogEntry("Orlando MSC is {}".format(strLocCode))
+
+  strSQL = "SELECT node FROM a10_lb_configs WHERE ip = '{}';".format("10.135.10.10")
+  lstReturn = SQLQuery (strSQL,VSVdbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] == 0:
+    strLocCode = "unknown"
+    LogEntry ("location {} not in location table".format("10.135.10.10"))
+  elif lstReturn[0] > 1:
+    LogEntry ("More than one instance of {} in location table,"
+      " picking the first one".format("10.135.10.10"))
+    strLocCode = (lstReturn[1][0][0])
+  else:
+    strLocCode = (lstReturn[1][0][0])
+  
+  LogEntry("10.135.10.10 is on {}".format(strLocCode))
+
+
+  # FetchF5Data(strF5URL)
+
+  LogEntry ("{} completed successfully on {}".format(strScriptName, strScriptHost))
+  objLogOut.close()
+  dbConn.close()
+  VSVdbConn.close()
 
 
 if __name__ == '__main__':
