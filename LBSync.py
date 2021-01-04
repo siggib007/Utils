@@ -46,46 +46,27 @@ def CleanExit(strCause):
   objLogOut.close()
   sys.exit(9)
 
-def main ():
-  global objLogOut
-  global strScriptName
-  global strScriptHost
+def ValidateIP(strToCheck):
+	Quads = strToCheck.split(".")
+	if len(Quads) != 4:
+		return False
+	# end if
 
-  strBaseDir = os.path.dirname(sys.argv[0])
-  strBaseDir = strBaseDir.replace("\\", "/")
-  strRealPath = os.path.realpath(sys.argv[0])
-  strRealPath = strRealPath.replace("\\","/")
-  strScriptName = os.path.basename(sys.argv[0])
-  iLoc = sys.argv[0].rfind(".")
-  # strConf_File = sys.argv[0][:iLoc] + ".ini"
+	for Q in Quads:
+		try:
+			iQuad = int(Q)
+		except ValueError:
+			return False
+		# end try
+
+		if iQuad > 255 or iQuad < 0:
+			return False
+		# end if
+
+	return True
+
+def FetchF5Data():
   objFileOut = open("c:/temp/VSViewOut.csv","w",1)
-
-  if strBaseDir == "":
-    iLoc = strRealPath.rfind("/")
-    strBaseDir = strRealPath[:iLoc]
-  if strBaseDir[-1:] != "/":
-    strBaseDir += "/"
-    strLogDir  = strBaseDir + "Logs/"
-  if strLogDir[-1:] != "/":
-    strLogDir += "/"
-
-  if not os.path.exists (strLogDir) :
-    os.makedirs(strLogDir)
-    print ("\nPath '{0}' for log files didn't exists, so I create it!\n".format(strLogDir))
-
-  iLoc = strScriptName.rfind(".")
-  strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
-  objLogOut = open(strLogFile, "w", 1)
-
-  strVersion = "{0}.{1}.{2}".format(sys.version_info[0],sys.version_info[1],sys.version_info[2])
-  strScriptHost = platform.node().upper()
-
-  print ("This is a script to fetch data in the VS View Tool and cache it in our DB. This is running under Python Version {}".format(strVersion))
-  print ("Running from: {}".format(strRealPath))
-  dtNow = time.asctime()
-  print ("The time now is {}".format(dtNow))
-  print ("Logs saved to {}".format(strLogFile))
-
   strF5File = FetchTextFile(strF5URL)
   lstF5json = strF5File.splitlines()
 
@@ -129,14 +110,16 @@ def main ():
               strIPAddr = lstIPPort[0]
             else:
               strIPAddr = strIPPort
-            lstPool.append (strIPAddr)
+            if ValidateIP(strIPAddr):
+              lstPool.append (strIPAddr)
           else:
-            lstPool.append (strMember)
+            if ValidateIP(strMember):
+              lstPool.append (strMember)
         strPool = "|".join(lstPool)
       else:
         strPool = dictF5VS["Pool"]["IPs"]
     else:
-      strPool = dictF5VS["Pool"]
+      strPool = ""
    
     if isinstance(strPool,list):
       strPool = "|".join(strPool)
@@ -146,6 +129,49 @@ def main ():
     strOut = "{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strPool)
     objFileOut.write(strOut)
     LogEntry ("Node: {} VS: {}".format(strNodeName,strVSName))
+
+
+def main ():
+  global objLogOut
+  global strScriptName
+  global strScriptHost
+
+  strBaseDir = os.path.dirname(sys.argv[0])
+  strBaseDir = strBaseDir.replace("\\", "/")
+  strRealPath = os.path.realpath(sys.argv[0])
+  strRealPath = strRealPath.replace("\\","/")
+  strScriptName = os.path.basename(sys.argv[0])
+  iLoc = sys.argv[0].rfind(".")
+  # strConf_File = sys.argv[0][:iLoc] + ".ini"
+  
+
+  if strBaseDir == "":
+    iLoc = strRealPath.rfind("/")
+    strBaseDir = strRealPath[:iLoc]
+  if strBaseDir[-1:] != "/":
+    strBaseDir += "/"
+    strLogDir  = strBaseDir + "Logs/"
+  if strLogDir[-1:] != "/":
+    strLogDir += "/"
+
+  if not os.path.exists (strLogDir) :
+    os.makedirs(strLogDir)
+    print ("\nPath '{0}' for log files didn't exists, so I create it!\n".format(strLogDir))
+
+  iLoc = strScriptName.rfind(".")
+  strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
+  objLogOut = open(strLogFile, "w", 1)
+
+  strVersion = "{0}.{1}.{2}".format(sys.version_info[0],sys.version_info[1],sys.version_info[2])
+  strScriptHost = platform.node().upper()
+
+  print ("This is a script to fetch data in the VS View Tool and cache it in our DB. This is running under Python Version {}".format(strVersion))
+  print ("Running from: {}".format(strRealPath))
+  dtNow = time.asctime()
+  print ("The time now is {}".format(dtNow))
+  print ("Logs saved to {}".format(strLogFile))
+
+  FetchF5Data()
 
 
 
