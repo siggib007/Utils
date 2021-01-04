@@ -58,6 +58,7 @@ def main ():
   strScriptName = os.path.basename(sys.argv[0])
   iLoc = sys.argv[0].rfind(".")
   # strConf_File = sys.argv[0][:iLoc] + ".ini"
+  objFileOut = open("c:/temp/VSViewOut.csv","w",1)
 
   if strBaseDir == "":
     iLoc = strRealPath.rfind("/")
@@ -90,8 +91,61 @@ def main ():
 
   for strF5json in lstF5json:
     dictF5VS = json.loads(strF5json)
-    LogEntry ("Node: {} VS: {} VIP: {} SNAT: {} Pool: {}".format(dictF5VS["Node"],dictF5VS["VS"],
-      dictF5VS["IP"],dictF5VS["SNAT"],dictF5VS["Pool"]))
+
+    strNodeName = dictF5VS["Node"]
+
+    lstVSName = dictF5VS["VS"].split("/")
+    if len(lstVSName) > 0:
+      strVSName = lstVSName[len(lstVSName)-1]
+    else:
+      strVSName = dictF5VS["VS"]
+    strVSName = strVSName.replace(",","|")
+
+    lstVIP = dictF5VS["IP"].split("/")
+    if len(lstVIP) > 0:
+      strVIP = lstVIP[len(lstVIP)-1]
+    else:
+      strVIP = dictF5VS["IP"]
+    strVIP = strVIP.replace(",","|")
+
+    # if "SNATPool" in dictF5VS["SNAT"]:
+    #   strSNAT = dictF5VS["SNAT"]["SNATPool"]
+    # else:
+    #   strSNAT = dictF5VS["SNAT"]
+    # if isinstance(strSNAT,list):
+    #   strSNAT = "|".join(strSNAT)
+    # else:
+    #   strSNAT = strSNAT.replace(",","|")
+
+    if "IPs" in dictF5VS["Pool"]:
+      lstPool = []
+      if isinstance(dictF5VS["Pool"]["IPs"],list):
+        for strMember in dictF5VS["Pool"]["IPs"]:
+          lstMember = strMember.split("/")
+          if len(lstMember) > 0:
+            strIPPort = lstMember[len(lstMember)-1]
+            lstIPPort = strIPPort.split(":")
+            if len(lstIPPort) > 0:
+              strIPAddr = lstIPPort[0]
+            else:
+              strIPAddr = strIPPort
+            lstPool.append (strIPAddr)
+          else:
+            lstPool.append (strMember)
+        strPool = "|".join(lstPool)
+      else:
+        strPool = dictF5VS["Pool"]["IPs"]
+    else:
+      strPool = dictF5VS["Pool"]
+   
+    if isinstance(strPool,list):
+      strPool = "|".join(strPool)
+    else:
+      strPool = strPool.replace(",","|")
+    
+    strOut = "{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strPool)
+    objFileOut.write(strOut)
+    LogEntry ("Node: {} VS: {}".format(strNodeName,strVSName))
 
 
 
