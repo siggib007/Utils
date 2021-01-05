@@ -61,7 +61,7 @@ def DBClean(strText):
   strTemp = strTemp.decode("ascii","ignore")
   strTemp = strTemp.replace("\\","\\\\")
   strTemp = strTemp.replace("'","\"")
-  return strTemp
+  return strTemp.strip()
 
 def SQLConn (strServer,strDBUser,strDBPWD,strInitialDB):
   try:
@@ -241,13 +241,17 @@ def FetchA10Data(strTableName):
         strVSName = "vs-"+strVIP+"_"+strVIPPort.replace(" ","-")
     LogEntry ("Processing Node: {} VS: {} Pool Name: {}".format(strNodeName,strVSName,strPoolName))
     updateDB(strNodeName,strVSName,strVIP,strVIPPort,"Virtual")
+    iLineNum = 1
     for strMember in lstPoolMember:
       i1st = strMember.rfind("-")
       i2nd = strMember.find(":")
       strIPAddr = strMember[i1st+1:i2nd]
       strIPPort = strMember[i2nd+1:]
+      iLineNum += 1
+      print ("Processed {} IPs for {}.".format(iLineNum,strVSName),end="\r")
       if strIPAddr != "":
         updateDB(strNodeName,strVSName,strIPAddr,strIPPort,"Member")
+    LogEntry("Processed {} IPs for {}.".format(iLineNum,strVSName))
 
 def updateDB(strNodeName,strVSName,strIPAddr,strIPPort,strType):
   strNodeName = DBClean(strNodeName)
