@@ -144,7 +144,6 @@ def ValidateIP(strToCheck):
 	return True
 
 def FetchF5Data(strF5URL):
-  objFileOut = open("c:/temp/VSViewOut.csv","w",1)
   strF5File = FetchTextFile(strF5URL)
   lstF5json = strF5File.splitlines()
 
@@ -152,6 +151,7 @@ def FetchF5Data(strF5URL):
     dictF5VS = json.loads(strF5json)
 
     strNodeName = dictF5VS["Node"]
+    strVIPPort = dictF5VS["Port"]
 
     lstVSName = dictF5VS["VS"].split("/")
     if len(lstVSName) > 0:
@@ -175,38 +175,45 @@ def FetchF5Data(strF5URL):
     #   strSNAT = "|".join(strSNAT)
     # else:
     #   strSNAT = strSNAT.replace(",","|")
+    LogEntry ("Processing Node: {} VS: {}".format(strNodeName,strVSName))
+    updateDB(strNodeName,strVSName,strVIP,strVIPPort,"Virtual")
+    
+    iLineNum = 1
 
     if "IPs" in dictF5VS["Pool"]:
-      lstPool = []
       if isinstance(dictF5VS["Pool"]["IPs"],list):
         for strMember in dictF5VS["Pool"]["IPs"]:
           lstMember = strMember.split("/")
           if len(lstMember) > 0:
-            strIPPort = lstMember[len(lstMember)-1]
-            lstIPPort = strIPPort.split(":")
+            strIPMember = lstMember[len(lstMember)-1]
+            lstIPPort = strIPMember.split(":")
             if len(lstIPPort) > 0:
               strIPAddr = lstIPPort[0]
             else:
-              strIPAddr = strIPPort
-            if ValidateIP(strIPAddr):
-              lstPool.append (strIPAddr)
+              strIPAddr = strIPMember
+            if len(lstIPPort) > 1:
+              strIPPort = lstIPPort[1]
+            else:
+              strIPPort = ""
+            # if ValidateIP(strIPAddr):
+            #   lstPool.append (strIPAddr)
           else:
-            if ValidateIP(strMember):
-              lstPool.append (strMember)
-        strPool = "|".join(lstPool)
-      else:
-        strPool = dictF5VS["Pool"]["IPs"]
-    else:
-      strPool = ""
-   
-    if isinstance(strPool,list):
-      strPool = "|".join(strPool)
-    else:
-      strPool = strPool.replace(",","|")
-    
-    strOut = "{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strPool)
-    objFileOut.write(strOut)
-    LogEntry ("Node: {} VS: {}".format(strNodeName,strVSName))
+            # if ValidateIP(strMember):
+            #   lstPool.append (strMember)
+            lstIPPort = strMember.split(":")
+            if len(lstIPPort) > 0:
+              strIPAddr = lstIPPort[0]
+            else:
+              strIPAddr = strMember
+            if len(lstIPPort) > 1:
+              strIPPort = lstIPPort[1]
+            else:
+              strIPPort = ""
+          if strIPAddr != "fqdn":
+            updateDB(strNodeName,strVSName,strIPAddr,strIPPort,"Member")
+            iLineNum += 1
+            print ("Processed {} IPs for {}.".format(iLineNum,strVSName),end="\r")
+        LogEntry("Processed {} IPs for {}.".format(iLineNum,strVSName))
 
 def FetchA10Data(strTableName):
 
@@ -239,7 +246,7 @@ def FetchA10Data(strTableName):
         strVSName = strPoolName
       else:
         strVSName = "vs-"+strVIP+"_"+strVIPPort.replace(" ","-")
-    LogEntry ("Processing Node: {} VS: {} Pool Name: {}".format(strNodeName,strVSName,strPoolName))
+    LogEntry ("Processing Node: {} VS: {}".format(strNodeName,strVSName))
     updateDB(strNodeName,strVSName,strVIP,strVIPPort,"Virtual")
     iLineNum = 1
     for strMember in lstPoolMember:
@@ -440,7 +447,7 @@ def main():
   dbConn = SQLConn (strDBServer,strDBUser,strDBPWD,strInitialDB)
   VSVdbConn = SQLConn (strVSVServer,strVSVUser,strVSVPWD,strVSVInitialDB)
 
-  LogEntry ("Pulling data from {}.{}.{} and saving to {}.{}.{}".format(strVSVServer,
+  LogEntry ("Pulling A10 data from {}.{}.{} and saving to {}.{}.{}".format(strVSVServer,
     strVSVInitialDB,strVSVTable,strDBServer,strDestDB,strDestTable))
   LogEntry ("First Truncating exiting data in {}.{}.{}".format(strDBServer,strDestDB,strDestTable))
   strSQL = "delete from {}.{};".format(strDestDB,strDestTable)
@@ -451,9 +458,8 @@ def main():
   else:
     LogEntry ("Deleted {} old records".format(lstReturn[0]))
 
+  FetchF5Data(strF5URL)
   FetchA10Data(strVSVTable)
-
-  # FetchF5Data(strF5URL)
 
   LogEntry ("{} completed successfully on {}".format(strScriptName, strScriptHost))
   objLogOut.close()
