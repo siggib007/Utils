@@ -226,6 +226,7 @@ def FetchA10Data(dbConn,strTableName):
     strNodeName = dbRow[0]
     strVSName = dbRow[1]
     strVIP = dbRow[3]
+    strVIPPort = dbRow[4]
     strPool = dbRow[6]
     iLoc = strPool.find("-(")
     strPoolName = strPool[:iLoc]
@@ -233,13 +234,14 @@ def FetchA10Data(dbConn,strTableName):
     lstPoolMember = strPoolMember.split(";")
     lstMemberIP = []
     for strMember in lstPoolMember:
-      i1st = strMember.find("-")
+      i1st = strMember.rfind("-")
       i2nd = strMember.find(":")
       strIPAddr = strMember[i1st+1:i2nd]
-      lstMemberIP.append(strIPAddr)
+      strIPPort = strMember[i2nd+1:]
+      lstMemberIP.append(strIPAddr+"p"+strIPPort)
     strPoolMember = "|".join(lstMemberIP)
 
-    strOut = "{},{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strPoolName,strPoolMember)
+    strOut = "{},{},{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strVIPPort,strPoolName,strPoolMember)
     objFileOut.write(strOut)
     LogEntry ("Node: {} VS: {} Pool Name: {}".format(strNodeName,strVSName,strPoolName))
 
@@ -301,8 +303,8 @@ def main ():
   global strScriptName
   global strScriptHost
   global strBaseDir
-  # global dbConn
-  # global VSVdbConn
+  global dbConn
+  global VSVdbConn
 
   dbConn = ""
   VSVdbConn = ""
