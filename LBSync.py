@@ -226,6 +226,8 @@ def FetchA10Data(strTableName):
     strVSName = dbRow[1]
     strVIP = dbRow[3]
     strVIPPort = dbRow[4]
+    iLoc = strVIPPort.find(" ")
+    strVIPPort = strVIPPort[:iLoc]
     strPool = dbRow[6]
     iLoc = strPool.find("-(")
     strPoolName = strPool[:iLoc]
@@ -247,8 +249,12 @@ def FetchA10Data(strTableName):
       if strIPAddr != "":
         updateDB(strNodeName,strVSName,strIPAddr,strIPPort,"Member")
 
-
 def updateDB(strNodeName,strVSName,strIPAddr,strIPPort,strType):
+  strNodeName = DBClean(strNodeName)
+  strVSName = DBClean(strVSName)
+  strIPAddr = DBClean(strIPAddr)
+  strIPPort = DBClean(strIPPort)
+  strType = DBClean(strType)
   strSQL = ("INSERT INTO {}.{} (vcNodeName,vcVSName,vcIPaddr,"
             " vcPort,vcType) VALUES ('{}','{}','{}','{}','{}');".format(strDestDB,strDestTable,strNodeName,
             strVSName,strIPAddr,strIPPort,strType))
