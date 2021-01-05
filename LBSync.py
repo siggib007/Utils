@@ -46,12 +46,12 @@ def CleanExit(strCause):
   LogEntry("{} is exiting abnormally on {} {}".format(strScriptName,strScriptHost, strCause))
   objLogOut.close()
   print ("objLogOut closed")
-  if dbConn != "":
-    dbConn.close()
-  print ("dbConn closed")  
-  if VSVdbConn != "":
-    VSVdbConn.close()
-  print ("VSVdbConn closed")  
+  # if dbConn != "":
+  #   dbConn.close()
+  # print ("dbConn closed")  
+  # if VSVdbConn != "":
+  #   VSVdbConn.close()
+  # print ("VSVdbConn closed")  
   sys.exit(9)
 
 def DBClean(strText):
@@ -208,6 +208,43 @@ def FetchF5Data(strF5URL):
     objFileOut.write(strOut)
     LogEntry ("Node: {} VS: {}".format(strNodeName,strVSName))
 
+def FetchA10Data(dbConn,strTableName):
+  objFileOut = open("c:/temp/VSViewOut.csv","w",1)
+
+  LogEntry ("Starting to process A10")
+  strSQL = "SELECT * FROM {};".format(strTableName)
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("Unexpected: {}".format(lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] == 0:
+    LogEntry ("No data returned")
+  else:
+    LogEntry ("Retrived {} rows".format(lstReturn[0]))
+  
+  for dbRow in lstReturn[1]:
+    strNodeName = dbRow[0]
+    strVSName = dbRow[1]
+    strVIP = dbRow[3]
+    strPool = dbRow[6]
+    iLoc = strPool.find("-(")
+    strPoolName = strPool[:iLoc]
+    strPoolMember = strPool[iLoc+2:-1]
+    lstPoolMember = strPoolMember.split(";")
+    lstMemberIP = []
+    for strMember in lstPoolMember:
+      i1st = strMember.find("-")
+      i2nd = strMember.find(":")
+      strIPAddr = strMember[i1st+1:i2nd]
+      lstMemberIP.append(strIPAddr)
+    strPoolMember = "|".join(lstMemberIP)
+
+    strOut = "{},{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strPoolName,strPoolMember)
+    objFileOut.write(strOut)
+    LogEntry ("Node: {} VS: {} Pool Name: {}".format(strNodeName,strVSName,strPoolName))
+
+
+
 def processConf(strConf_File):
 
   LogEntry ("Looking for configuration file: {}".format(strConf_File))
@@ -264,8 +301,8 @@ def main ():
   global strScriptName
   global strScriptHost
   global strBaseDir
-  global dbConn
-  global VSVdbConn
+  # global dbConn
+  # global VSVdbConn
 
   dbConn = ""
   VSVdbConn = ""
@@ -278,7 +315,6 @@ def main ():
   iLoc = sys.argv[0].rfind(".")
   strConf_File = sys.argv[0][:iLoc] + ".ini"
   
-
   if strBaseDir == "":
     iLoc = strRealPath.rfind("/")
     strBaseDir = strRealPath[:iLoc]
@@ -353,8 +389,15 @@ def main ():
   else:
     CleanExit("No InitialDB provided")
 
+  if "VSVTable" in dictConfig:
+    strVSVTable = dictConfig["VSVTable"]
+  else:
+    CleanExit("No VSVTable provided")
+
   dbConn = SQLConn (strDBServer,strDBUser,strDBPWD,strInitialDB)
   VSVdbConn = SQLConn (strVSVServer,strVSVUser,strVSVPWD,strVSVInitialDB)
+
+  FetchA10Data(VSVdbConn,strVSVTable)
 
   strSQL = "select vcSiteCode from tblSiteCodes where vcSNLocation = '{}';".format("Orlando MSC")
   lstReturn = SQLQuery (strSQL,dbConn)
@@ -373,22 +416,6 @@ def main ():
   
   LogEntry("Orlando MSC is {}".format(strLocCode))
 
-  strSQL = "SELECT node FROM a10_lb_configs WHERE ip = '{}';".format("10.135.10.10")
-  lstReturn = SQLQuery (strSQL,VSVdbConn)
-  if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] == 0:
-    strLocCode = "unknown"
-    LogEntry ("location {} not in location table".format("10.135.10.10"))
-  elif lstReturn[0] > 1:
-    LogEntry ("More than one instance of {} in location table,"
-      " picking the first one".format("10.135.10.10"))
-    strLocCode = (lstReturn[1][0][0])
-  else:
-    strLocCode = (lstReturn[1][0][0])
-  
-  LogEntry("10.135.10.10 is on {}".format(strLocCode))
 
 
   # FetchF5Data(strF5URL)
