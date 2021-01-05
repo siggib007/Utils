@@ -245,6 +245,9 @@ def FetchA10Data(strTableName):
     for strMember in lstPoolMember:
       i1st = strMember.rfind("-")
       i2nd = strMember.find(":")
+      iAlt = strMember.rfind("_")
+      if i1st == -1:
+        i1st = iAlt
       strIPAddr = strMember[i1st+1:i2nd]
       strIPPort = strMember[i2nd+1:]
       iLineNum += 1
