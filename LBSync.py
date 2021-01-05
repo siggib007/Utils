@@ -208,14 +208,13 @@ def FetchF5Data(strF5URL):
     objFileOut.write(strOut)
     LogEntry ("Node: {} VS: {}".format(strNodeName,strVSName))
 
-def FetchA10Data(dbConn,strTableName):
-  objFileOut = open("c:/temp/VSViewOut.csv","w",1)
+def FetchA10Data(strTableName):
 
-  LogEntry ("Starting to process A10")
+  LogEntry ("Starting to process A10, fetching data from table {}".format(strTableName))
   strSQL = "SELECT * FROM {};".format(strTableName)
-  lstReturn = SQLQuery (strSQL,dbConn)
+  lstReturn = SQLQuery (strSQL,VSVdbConn)
   if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
+    LogEntry ("While selecting from {} Unexpected response: {}".format(strTableName,lstReturn))
     CleanExit("due to unexpected SQL return, please check the logs")
   elif lstReturn[0] == 0:
     LogEntry ("No data returned")
@@ -232,27 +231,37 @@ def FetchA10Data(dbConn,strTableName):
     strPoolName = strPool[:iLoc]
     strPoolMember = strPool[iLoc+2:-1]
     lstPoolMember = strPoolMember.split(";")
-    lstMemberIP = []
     if strVSName == "":
       LogEntry("VS name for VIP {} on {} is blank".format(strVIP,strNodeName))
       if strPoolName != "":
         strVSName = strPoolName
       else:
         strVSName = "vs-"+strVIP+"_"+strVIPPort.replace(" ","-")
+    LogEntry ("Processing Node: {} VS: {} Pool Name: {}".format(strNodeName,strVSName,strPoolName))
+    updateDB(strNodeName,strVSName,strVIP,strVIPPort,"Virtual")
     for strMember in lstPoolMember:
       i1st = strMember.rfind("-")
       i2nd = strMember.find(":")
       strIPAddr = strMember[i1st+1:i2nd]
       strIPPort = strMember[i2nd+1:]
       if strIPAddr != "":
-        lstMemberIP.append(strIPAddr+"p"+strIPPort)
-    strPoolMember = "|".join(lstMemberIP)
-
-    strOut = "{},{},{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strVIPPort,strPoolName,strPoolMember)
-    objFileOut.write(strOut)
-    LogEntry ("Node: {} VS: {} Pool Name: {}".format(strNodeName,strVSName,strPoolName))
+        updateDB(strNodeName,strVSName,strIPAddr,strIPPort,"Member")
 
 
+def updateDB(strNodeName,strVSName,strIPAddr,strIPPort,strType):
+  strSQL = ("INSERT INTO {}.{} (vcNodeName,vcVSName,vcIPaddr,"
+            " vcPort,vcType) VALUES ('{}','{}','{}','{}','{}');".format(strDestDB,strDestTable,strNodeName,
+            strVSName,strIPAddr,strIPPort,strType))
+  lstReturn = SQLQuery (strSQL,dbConn)
+  if not ValidReturn(lstReturn):
+    LogEntry ("While inserting IP addresses into {}.{}. Unexpected response: {}".format(strDestDB,
+        strDestTable,lstReturn))
+    CleanExit("due to unexpected SQL return, please check the logs")
+  elif lstReturn[0] != 1:
+    LogEntry("While inserting IP addresses into {}.{}. "
+            "Records affected {}, expected 1 record affected".format(strDestDB,strDestTable,lstReturn[0]))
+  # else:
+  #   LogEntry ("Successfully inserted into ")
 
 def processConf(strConf_File):
 
@@ -305,13 +314,15 @@ def processConf(strConf_File):
   LogEntry ("Done processing configuration, moving on")
   return dictConfig
 
-def main ():
+def main():
   global objLogOut
   global strScriptName
   global strScriptHost
   global strBaseDir
   global dbConn
   global VSVdbConn
+  global strDestDB
+  global strDestTable
 
   dbConn = ""
   VSVdbConn = ""
@@ -403,29 +414,31 @@ def main ():
   else:
     CleanExit("No VSVTable provided")
 
+  if "DestDB" in dictConfig:
+    strDestDB = dictConfig["DestDB"]
+  else:
+    CleanExit("No DestDB provided")
+
+  if "DestTable" in dictConfig:
+    strDestTable = dictConfig["DestTable"]
+  else:
+    CleanExit("No DestTable provided")
+
   dbConn = SQLConn (strDBServer,strDBUser,strDBPWD,strInitialDB)
   VSVdbConn = SQLConn (strVSVServer,strVSVUser,strVSVPWD,strVSVInitialDB)
 
-  FetchA10Data(VSVdbConn,strVSVTable)
-
-  strSQL = "select vcSiteCode from tblSiteCodes where vcSNLocation = '{}';".format("Orlando MSC")
+  LogEntry ("Pulling data from {}.{}.{} and saving to {}.{}.{}".format(strVSVServer,
+    strVSVInitialDB,strVSVTable,strDBServer,strDestDB,strDestTable))
+  LogEntry ("First Truncating exiting data in {}.{}.{}".format(strDBServer,strDestDB,strDestTable))
+  strSQL = "delete from {}.{};".format(strDestDB,strDestTable)
   lstReturn = SQLQuery (strSQL,dbConn)
   if not ValidReturn(lstReturn):
-    LogEntry ("Unexpected: {}".format(lstReturn))
-    CleanExit("due to unexpected SQL return, please check the logs")
-  elif lstReturn[0] == 0:
-    strLocCode = "unknown"
-    LogEntry ("location {} not in location table".format("Orlando MSC"))
-  elif lstReturn[0] > 1:
-    LogEntry ("More than one instance of {} in location table,"
-      " picking the first one".format("Orlando MSC"))
-    strLocCode = (lstReturn[1][0][0])
+    CleanExit ("While Truncating exiting data in {}.{}.{} got unexpected results: {}".format(strDBServer,
+        strDestDB,strDestTable,lstReturn))
   else:
-    strLocCode = (lstReturn[1][0][0])
-  
-  LogEntry("Orlando MSC is {}".format(strLocCode))
+    LogEntry ("Deleted {} old records".format(lstReturn[0]))
 
-
+  FetchA10Data(strVSVTable)
 
   # FetchF5Data(strF5URL)
 
@@ -433,7 +446,6 @@ def main ():
   objLogOut.close()
   dbConn.close()
   VSVdbConn.close()
-
 
 if __name__ == '__main__':
   main()
