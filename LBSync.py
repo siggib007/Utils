@@ -233,12 +233,19 @@ def FetchA10Data(dbConn,strTableName):
     strPoolMember = strPool[iLoc+2:-1]
     lstPoolMember = strPoolMember.split(";")
     lstMemberIP = []
+    if strVSName == "":
+      LogEntry("VS name for VIP {} on {} is blank".format(strVIP,strNodeName))
+      if strPoolName != "":
+        strVSName = strPoolName
+      else:
+        strVSName = "vs-"+strVIP+"_"+strVIPPort.replace(" ","-")
     for strMember in lstPoolMember:
       i1st = strMember.rfind("-")
       i2nd = strMember.find(":")
       strIPAddr = strMember[i1st+1:i2nd]
       strIPPort = strMember[i2nd+1:]
-      lstMemberIP.append(strIPAddr+"p"+strIPPort)
+      if strIPAddr != "":
+        lstMemberIP.append(strIPAddr+"p"+strIPPort)
     strPoolMember = "|".join(lstMemberIP)
 
     strOut = "{},{},{},{},{},{}\n".format(strNodeName,strVSName,strVIP,strVIPPort,strPoolName,strPoolMember)
