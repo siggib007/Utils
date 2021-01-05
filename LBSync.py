@@ -19,7 +19,6 @@ import pymysql
 # End imports
 
 ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
-strF5URL = "https://t2securityselfhelp.eng.t-mobile.com/f5Output.json"
 
 #avoid insecure warning
 requests.urllib3.disable_warnings()
