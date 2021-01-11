@@ -372,7 +372,6 @@ def main():
   objLogOut = open(strLogFile, "w", 1)
 
   strVersion = "{0}.{1}.{2}".format(sys.version_info[0],sys.version_info[1],sys.version_info[2])
-  strScriptHost = platform.node().upper()
 
   print ("This is a script to fetch data in the VS View Tool and cache it in our DB. This is running under Python Version {}".format(strVersion))
   print ("Running from: {}".format(strRealPath))
@@ -381,6 +380,12 @@ def main():
   print ("Logs saved to {}".format(strLogFile))
 
   dictConfig = processConf(strConf_File)
+
+  strScriptHost = platform.node().upper()
+  if strScriptHost in dictConfig:
+    strScriptHost = dictConfig[strScriptHost]
+  
+  LogEntry ("Starting {} on {}".format(strScriptName,strScriptHost))
 
   if "F5URL" in dictConfig:
     strF5URL = dictConfig["F5URL"]
