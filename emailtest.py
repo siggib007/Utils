@@ -15,6 +15,9 @@ import os
 import smtplib
 
 # End imports
+strPort = 465
+bUseTLS = False
+iDebugLevel = 0
 
 def CleanExit(strCause):
   print (strCause)
@@ -24,8 +27,7 @@ def LogEntry(strmsg):
   print(strmsg)
 
 def main():
-  strPort = 465
-  bUseTLS = False
+
   if os.getenv("EMAILUSER") != "" and os.getenv("EMAILUSER") is not None:
     strUser = os.getenv("EMAILUSER")
   else:
@@ -53,7 +55,7 @@ def main():
 
   try:
     objSMTP = smtplib.SMTP(strServer,strPort)
-    objSMTP.set_debuglevel(1)
+    objSMTP.set_debuglevel(iDebugLevel)
     if bUseTLS:
       objSMTP.starttls()
     objResponse = objSMTP.login(strUser,strPWD)
