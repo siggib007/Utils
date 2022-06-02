@@ -49,19 +49,17 @@ def main():
   strSender = "Private Person <from@example.com>"
   strRCTP = "A Test User <to@example.com>"
 
-  strMsg = f"""\
-  Subject: Howdy Partner
-  To: {strRCTP}
-  From: {strSender}
-
-  This is a test e-mail message. just more testing"""
+  strMsg = "Subject: Howdy Partner\nTo: {}\nFrom: {}\nThis is a test e-mail message. just more testing".format(strRCTP,strSender)
 
   try:
     objSMTP = smtplib.SMTP(strServer,strPort)
+    objSMTP.set_debuglevel(1)
     if bUseTLS:
       objSMTP.starttls()
-    objSMTP.login(strUser,strPWD)
-    objSMTP.sendmail(strSender, strRCTP, strMsg)
+    objResponse = objSMTP.login(strUser,strPWD)
+    print ("Response from login: {}".format(objResponse))
+    objResponse = objSMTP.sendmail(strSender, strRCTP, strMsg)
+    print("Response from sendmail: {}".format(objResponse))
     print ("Successfully sent email via {} port {} to {}".format(strServer,strPort,strRCTP))
   except smtplib.SMTPException:
     print ("Error: unable to send email")
