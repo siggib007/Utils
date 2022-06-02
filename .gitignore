@@ -1,2 +1,3 @@
 *.ini
 /logs/
+.vscode/launch.json
