@@ -98,7 +98,8 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom):
     print ("Error: unable to send email")
 
 def main():
-  SendHTMLEmail("strSubject", "strBody", "strTo", "strFrom")
+  SendHTMLEmail("New test with modular function", "<h1>Welcome</h1>This is a <i>test</i>",
+                "A Test User <to@example.com>", "Private Person <from@example.com>")
 
 if __name__ == '__main__':
     main()
