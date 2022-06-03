@@ -1,5 +1,5 @@
 '''
-Quick little script to test sending email from python
+Quick little script to send email from python
 
 Author Siggi Bjarnason Copyright 2022
 
@@ -7,8 +7,8 @@ Following packages need to be installed as administrator
 pip install bs4
 
 '''
+
 # Import libraries
-from glob import glob
 import sys
 import os
 import smtplib
