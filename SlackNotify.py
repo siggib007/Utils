@@ -70,17 +70,15 @@ def SendNotification (strMsg):
       if isinstance(dictResponse,dict):
         if "ok" in dictResponse:
           bStatus = dictResponse["ok"]
-          LogEntry ("Successfully sent slack notification\n{} ".format(strMsg))
+          if bStatus:
+            LogEntry("Successfully sent slack notification\n{} ".format(strMsg))
+          else:
+            LogEntry("Failed to send slack message:{} ".format(
+                dictResponse["error"]))
         else:
           LogEntry ("Slack notification response: {}".format(dictResponse))
       else:
         LogEntry ("response is not a dictionary, here is what came back: {}".format(dictResponse))
-      if not bStatus or WebRequest.status_code != 200:
-        LogEntry ("Problme: Status Code:[] API Response OK={}")
-        LogEntry (WebRequest.text)
-      else:
-        pass
-        # LogEntry ("WebRequest status: {}, bStatus: {}".format(WebRequest.status_code,bStatus))
   else:
     LogEntry("WebRequest not defined")
 
