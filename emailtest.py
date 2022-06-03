@@ -46,7 +46,6 @@ def CleanExit(strCause):
 def LogEntry(strmsg):
   print(strmsg)
 
-
 def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   global strPort
   global bUseTLS

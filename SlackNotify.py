@@ -4,20 +4,48 @@ Quick little script to test sending email from python
 Author Siggi Bjarnason Copyright 2022
 
 Following packages need to be installed as administrator
-pip install bs4
-
+pip install requests
+pip install jason
 '''
 # Import libraries
 import sys
 import requests
 import os
-import string
-import time
 import urllib.parse as urlparse
-import subprocess as proc
-import platform
 import json
 # End imports
+
+iTimeOut = 20
+bNotifyEnabled = False
+
+def CleanExit(strCause):
+  print(strCause)
+  sys.exit(9)
+
+def LogEntry(strmsg):
+  print(strmsg)
+
+if os.getenv("NOTIFYURL") != "" and os.getenv("NOTIFYURL") is not None:
+  strNotifyURL = os.getenv("NOTIFYURL")
+else:
+  strNotifyURL = None
+
+if os.getenv("NOTIFYCHANNEL") != "" and os.getenv("NOTIFYCHANNEL") is not None:
+  strNotifyChannel = os.getenv("NOTIFYCHANNEL")
+else:
+  strNotifyChannel = None
+
+if os.getenv("NOTIFYTOKEN") != "" and os.getenv("NOTIFYTOKEN") is not None:
+  strNotifyToken = os.getenv("NOTIFYTOKEN")
+else:
+  strNotifyToken = None
+
+if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None:
+  bNotifyEnabled = False
+  LogEntry(
+      "Missing configuration items for Slack notifications, turning slack notifications off")
+else:
+  bNotifyEnabled = True
 
 def SendNotification (strMsg):
   if not bNotifyEnabled:
@@ -55,3 +83,10 @@ def SendNotification (strMsg):
         # LogEntry ("WebRequest status: {}, bStatus: {}".format(WebRequest.status_code,bStatus))
   else:
     LogEntry("WebRequest not defined")
+
+def main():
+  SendNotification("this is a test")
+
+
+if __name__ == '__main__':
+    main()
