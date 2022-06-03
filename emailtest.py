@@ -44,7 +44,7 @@ def LogEntry(strmsg):
   print(strmsg)
 
 
-def SendHTMLEmail(strSubject, strBody, strTo, strFrom):
+def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
 
   if os.getenv("EMAILUSER") != "" and os.getenv("EMAILUSER") is not None:
     strUser = os.getenv("EMAILUSER")
@@ -72,6 +72,12 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom):
   objMsg["Subject"] = strSubject
   objMsg['Date'] = email.utils.formatdate(localtime=True)
   objMsg['Message-ID'] = email.utils.make_msgid()
+  for strHead in lstHeaders:
+    lstHeadParts = strHead.split(":")
+    if len(lstHeadParts) == 2:
+      strHeadName = lstHeadParts[0].strip()
+      strHeadValue = lstHeadParts[1].strip()
+      objMsg.add_header(strHeadName, strHeadValue)
   oPart1 = MIMEText(remove_tags(strBody), "plain")
   opart2 = MIMEText(strBody, "html")
   objMsg.attach(oPart1)
@@ -92,8 +98,13 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom):
     print ("Error: unable to send email")
 
 def main():
-  SendHTMLEmail("Supergeeky test", "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i>",
-                "Siggi Supergeek <siggi@bjarnason.us>", "Supergeek Admin <admin@supergeek.us>")
+  lstHeaders = []
+  lstHeaders.append("X-Testing: This is my test header")
+  lstHeaders.append("X-Test2: Second test header")
+  lstHeaders.append("X-Test3: third test header")
+  lstHeaders.append("X-Test4: fourt test header")
+  SendHTMLEmail("Custom header test", "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i> where we are testing for custom headers",
+                "Siggi Supergeek <siggi@bjarnason.us>", "Supergeek Admin <admin@supergeek.us>",lstHeaders)
 
 if __name__ == '__main__':
     main()
