@@ -50,16 +50,21 @@ else:
 def SendNotification (strMsg):
   if not bNotifyEnabled:
     return "notifications not enabled"
-  dictNotify = {}
-  dictNotify["token"] = strNotifyToken
-  dictNotify["channel"] = strNotifyChannel
-  dictNotify["text"]=strMsg[:199]
-  strNotifyParams = urlparse.urlencode(dictNotify)
-  strURL = strNotifyURL + "?" + strNotifyParams
+  dictHeader = {}
+  dictHeader["Content-Type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Cache-Control"] = "no-cache"
+  dictHeader["Connection"] = "keep-alive"
+  dictHeader["Authorization"] = "Bearer " + strNotifyToken
+
+  dictPayload={}
+  dictPayload["channel"] = strNotifyChannel
+  dictPayload["text"] = strMsg[:199]
+
   bStatus = False
   WebRequest = None
   try:
-    WebRequest = requests.get(strURL,timeout=iTimeOut)
+    WebRequest = requests.post(strNotifyURL, json=dictPayload, headers=dictHeader)
   except Exception as err:
     LogEntry ("Issue with sending notifications. {}".format(err))
   if WebRequest is not None:
