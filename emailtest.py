@@ -20,8 +20,9 @@ from bs4 import BeautifulSoup
 
 # End imports
 strPort = 465
-bUseTLS = False
+bUseTLS = True
 iDebugLevel = 0
+iTimeout = 5
 
 def remove_tags(html):
 
@@ -83,18 +84,18 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   objMsg.attach(opart2)
 
   try:
-    objSMTP = smtplib.SMTP(strServer,strPort)
-    objSMTP.set_debuglevel(iDebugLevel)
     if bUseTLS:
-      objSMTP.starttls()
+      objSMTP = smtplib.SMTP_SSL(strServer,strPort,timeout=iTimeout)
+    else:
+      objSMTP = smtplib.SMTP(strServer, strPort, timeout=iTimeout)
+    objSMTP.set_debuglevel(iDebugLevel)
     objResponse = objSMTP.login(strUser,strPWD)
     print ("Response from login: {}".format(objResponse))
-    objResponse = objSMTP.send_message(objMsg)
+    objSMTP.send_message(objMsg)
     objSMTP.quit()
-    print("Response from sendmail: {}".format(objResponse))
     print ("Successfully sent email via {} port {} to {}".format(strServer,strPort,strTo))
-  except smtplib.SMTPException:
-    print ("Error: unable to send email")
+  except smtplib.SMTPException as err:
+    print ("Error: unable to send email. {}".format(err))
 
 def main():
   lstHeaders = []
