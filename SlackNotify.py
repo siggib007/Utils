@@ -18,13 +18,6 @@ import json
 iTimeOut = 20
 bNotifyEnabled = False
 
-def CleanExit(strCause):
-  print(strCause)
-  sys.exit(9)
-
-def LogEntry(strmsg):
-  print(strmsg)
-
 if os.getenv("NOTIFYURL") != "" and os.getenv("NOTIFYURL") is not None:
   strNotifyURL = os.getenv("NOTIFYURL")
 else:
@@ -42,8 +35,7 @@ else:
 
 if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None:
   bNotifyEnabled = False
-  LogEntry(
-      "Missing configuration items for Slack notifications, turning slack notifications off")
+  print("Missing configuration items for Slack notifications, turning slack notifications off")
 else:
   bNotifyEnabled = True
 
@@ -66,29 +58,28 @@ def SendNotification (strMsg):
   try:
     WebRequest = requests.post(strNotifyURL, json=dictPayload, headers=dictHeader)
   except Exception as err:
-    LogEntry ("Issue with sending notifications. {}".format(err))
+    return "FAIL. Issue with sending notifications. {}".format(err)
   if WebRequest is not None:
     if isinstance(WebRequest,requests.models.Response)==False:
-      LogEntry ("response is unknown type")
+      return "FAIL. Response is unknown type"
     else:
       dictResponse = json.loads(WebRequest.text)
       if isinstance(dictResponse,dict):
         if "ok" in dictResponse:
           bStatus = dictResponse["ok"]
           if bStatus:
-            LogEntry("Successfully sent slack notification\n{} ".format(strMsg))
+            return "OK. Successfully sent slack notification\n{} ".format(strMsg)
           else:
-            LogEntry("Failed to send slack message:{} ".format(
-                dictResponse["error"]))
+            return "FAIL. Failed to send slack message:{} ".format(dictResponse["error"])
         else:
-          LogEntry ("Slack notification response: {}".format(dictResponse))
+          return "FAIL. Slack notification response: {}".format(dictResponse)
       else:
-        LogEntry ("response is not a dictionary, here is what came back: {}".format(dictResponse))
+        return "FAIL. response is not a dictionary, here is what came back: {}".format(dictResponse)
   else:
-    LogEntry("WebRequest not defined")
+    return "FAIL. WebRequest not defined"
 
 def main():
-  SendNotification("this is a test")
+  print(SendNotification("More testing"))
 
 
 if __name__ == '__main__':
