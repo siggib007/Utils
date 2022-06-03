@@ -8,6 +8,7 @@ pip install bs4
 
 '''
 # Import libraries
+from glob import glob
 import sys
 import os
 import smtplib
@@ -22,6 +23,7 @@ import ssl
 # End imports
 strPort = 465
 bUseTLS = False
+bUseStartTLS = False
 iDebugLevel = 0
 iTimeout = 15
 
@@ -48,7 +50,8 @@ def LogEntry(strmsg):
 def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   global strPort
   global bUseTLS
-  
+  global bUseStartTLS
+
   if os.getenv("EMAILUSER") != "" and os.getenv("EMAILUSER") is not None:
     strUser = os.getenv("EMAILUSER")
   else:
@@ -75,7 +78,15 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
     else:
       bUseTLS = False
   else:
-    LogEntry("No SSL directive provided, using the default of {}".format(strPort))
+    LogEntry("No SSL directive provided, using the default of {}".format(bUseTLS))
+
+  if os.getenv("USESTARTTLS") != "" and os.getenv("USESTARTTLS") is not None:
+    if os.getenv("USESTARTTLS").lower() == "true":
+      bUseStartTLS = True
+    else:
+      bUseStartTLS = False
+  else:
+    LogEntry("No SSL directive provided, using the default of {}".format(bUseStartTLS))
 
   objMsg = MIMEMultipart('alternative')
   objMsg["To"] = strTo
@@ -99,6 +110,8 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
       objSMTP = smtplib.SMTP_SSL(strServer,strPort,timeout=iTimeout)
     else:
       objSMTP = smtplib.SMTP(strServer, strPort, timeout=iTimeout)
+      if bUseStartTLS:
+        objSMTP.starttls()
     objSMTP.set_debuglevel(iDebugLevel)
     objResponse = objSMTP.login(strUser,strPWD)
     LogEntry ("Response from login: {}".format(objResponse))
