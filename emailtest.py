@@ -17,12 +17,13 @@ import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from bs4 import BeautifulSoup
+import ssl
 
 # End imports
 strPort = 465
-bUseTLS = True
+bUseTLS = False
 iDebugLevel = 0
-iTimeout = 5
+iTimeout = 15
 
 def remove_tags(html):
 
@@ -45,26 +46,36 @@ def LogEntry(strmsg):
 
 
 def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
-
+  global strPort
+  global bUseTLS
+  
   if os.getenv("EMAILUSER") != "" and os.getenv("EMAILUSER") is not None:
     strUser = os.getenv("EMAILUSER")
   else:
-    CleanExit("No email user name provided")
+    return "FATAL ERROR: No email user name provided"
 
   if os.getenv("EMAILPWD") != "" and os.getenv("EMAILPWD") is not None:
     strPWD = os.getenv("EMAILPWD")
   else:
-    CleanExit("No email user password provided")
+    return "FATAL ERROR: No email user password provided"
 
   if os.getenv("EMAILSERVER") != "" and os.getenv("EMAILSERVER") is not None:
     strServer = os.getenv("EMAILSERVER")
   else:
-    CleanExit("No email server provided")
+    return "FATAL ERROR: No email server provided"
 
   if os.getenv("EMAILPORT") != "" and os.getenv("EMAILPORT") is not None:
     strPort = os.getenv("EMAILPORT")
   else:
     LogEntry("No server port provided, using the default of {}".format(strPort))
+
+  if os.getenv("USESSL") != "" and os.getenv("USESSL") is not None:
+    if os.getenv("USESSL").lower() == "true":
+      bUseTLS = True
+    else:
+      bUseTLS = False
+  else:
+    LogEntry("No SSL directive provided, using the default of {}".format(strPort))
 
   objMsg = MIMEMultipart('alternative')
   objMsg["To"] = strTo
@@ -90,12 +101,15 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
       objSMTP = smtplib.SMTP(strServer, strPort, timeout=iTimeout)
     objSMTP.set_debuglevel(iDebugLevel)
     objResponse = objSMTP.login(strUser,strPWD)
-    print ("Response from login: {}".format(objResponse))
+    LogEntry ("Response from login: {}".format(objResponse))
     objSMTP.send_message(objMsg)
     objSMTP.quit()
-    print ("Successfully sent email via {} port {} to {}".format(strServer,strPort,strTo))
+    LogEntry ("Successfully sent email via {} port {} to {}".format(strServer,strPort,strTo))
+    return "SUCCESS"
+  except ssl.SSLError as err:
+    return "SSL Error: {}".format(err)
   except smtplib.SMTPException as err:
-    print ("Error: unable to send email. {}".format(err))
+    return "Error: unable to send email. {}".format(err)
 
 def main():
   lstHeaders = []
@@ -103,8 +117,16 @@ def main():
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  SendHTMLEmail("Custom header test", "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i> where we are testing for custom headers",
+  strReturn = SendHTMLEmail("Custom header test", "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i> where we are testing for custom headers",
                 "Siggi Supergeek <siggi@bjarnason.us>", "Supergeek Admin <admin@supergeek.us>",lstHeaders)
+  if strReturn == "SUCCESS":
+    LogEntry("Email sent successfully")
+  elif strReturn[:5] == "Error":
+    LogEntry("unable to send email. {}".format(strReturn))
+  elif strReturn[:11] == "FATAL ERROR":
+    LogEntry("Failed to send email. {}".format(strReturn))
+  else:
+    LogEntry("other non-sucess: {}".format(strReturn))
 
 if __name__ == '__main__':
     main()
