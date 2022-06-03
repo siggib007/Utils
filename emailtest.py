@@ -24,7 +24,6 @@ strPort = 465
 bUseTLS = False
 iDebugLevel = 0
 
-
 def remove_tags(html):
 
     # parse html content
@@ -67,17 +66,12 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom):
   else:
     LogEntry("No server port provided, using the default of {}".format(strPort))
 
-  #objMsg = email.message.EmailMessage(email.policy.SMTP)
   objMsg = MIMEMultipart('alternative')
   objMsg["To"] = strTo
   objMsg["From"] = strFrom
   objMsg["Subject"] = strSubject
   objMsg['Date'] = email.utils.formatdate(localtime=True)
   objMsg['Message-ID'] = email.utils.make_msgid()
-  #objMsg.add_header('Content-Type', 'text/html')
-  #objMsg.set_content(strHTML, subtype="html")
-  #objMsg.set_content(strTxtBody, subtype="plain")
-  #strMsg = "Subject: Howdy Partner\nTo: {}\nFrom: {}\nThis is a test e-mail message. just more testing".format(strRCTP,strSender)
   oPart1 = MIMEText(remove_tags(strBody), "plain")
   opart2 = MIMEText(strBody, "html")
   objMsg.attach(oPart1)
@@ -98,7 +92,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom):
     print ("Error: unable to send email")
 
 def main():
-  SendHTMLEmail("New test with modular function", "<h1>Welcome</h1>This is a <i>test</i>",
+  SendHTMLEmail("New test with modular function", "<h1>Welcome!!!!</h1>\nThis is a <i>test</i>",
                 "A Test User <to@example.com>", "Private Person <from@example.com>")
 
 if __name__ == '__main__':
