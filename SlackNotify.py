@@ -1,5 +1,5 @@
 '''
-Quick little script to test sending email from python
+Quick little script to send slack messages from python
 
 Author Siggi Bjarnason Copyright 2022
 
@@ -15,6 +15,7 @@ import json
 
 iTimeOut = 20
 bNotifyEnabled = False
+iMaxMSGlen = 199
 
 if os.getenv("NOTIFYURL") != "" and os.getenv("NOTIFYURL") is not None:
   strNotifyURL = os.getenv("NOTIFYURL")
@@ -39,7 +40,7 @@ else:
 
 def SendNotification (strMsg):
   if not bNotifyEnabled:
-    return "notifications not enabled"
+    return "FAIL. Notifications not enabled"
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
   dictHeader["Accept"] = "application/json"
@@ -49,12 +50,13 @@ def SendNotification (strMsg):
 
   dictPayload={}
   dictPayload["channel"] = strNotifyChannel
-  dictPayload["text"] = strMsg[:199]
+  dictPayload["text"] = strMsg[:iMaxMSGlen]
 
   bStatus = False
   WebRequest = None
   try:
-    WebRequest = requests.post(strNotifyURL, json=dictPayload, headers=dictHeader)
+    WebRequest = requests.post(
+        strNotifyURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader)
   except Exception as err:
     return "FAIL. Issue with sending notifications. {}".format(err)
   if WebRequest is not None:
@@ -66,7 +68,7 @@ def SendNotification (strMsg):
         if "ok" in dictResponse:
           bStatus = dictResponse["ok"]
           if bStatus:
-            return "OK. Successfully sent slack notification\n{} ".format(strMsg)
+            return "OK. Successfully sent the following slack notification:\n{} ".format(strMsg[:iMaxMSGlen])
           else:
             return "FAIL. Failed to send slack message:{} ".format(dictResponse["error"])
         else:
