@@ -8,10 +8,8 @@ pip install requests
 pip install jason
 '''
 # Import libraries
-import sys
 import requests
 import os
-import urllib.parse as urlparse
 import json
 # End imports
 
