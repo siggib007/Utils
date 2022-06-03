@@ -4,8 +4,7 @@ Quick little script to test sending email from python
 Author Siggi Bjarnason Copyright 2022
 
 Following packages need to be installed as administrator
-pip install requests
-pip install jason
+pip install bs4
 
 '''
 # Import libraries
