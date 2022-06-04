@@ -11,36 +11,15 @@ pip install jason
 import requests
 import os
 import json
+import sys
 # End imports
 
-iTimeOut = 20
-bNotifyEnabled = False
-iMaxMSGlen = 199
 
-if os.getenv("NOTIFYURL") != "" and os.getenv("NOTIFYURL") is not None:
-  strNotifyURL = os.getenv("NOTIFYURL")
-else:
-  strNotifyURL = None
+def SendNotification(strMsg, strNotifyChannel, strNotifyToken):
+  iTimeOut = 20     #Connection timeout in seconds
+  iMaxMSGlen = 199  #Truncate the slack message to this length
 
-if os.getenv("NOTIFYCHANNEL") != "" and os.getenv("NOTIFYCHANNEL") is not None:
-  strNotifyChannel = os.getenv("NOTIFYCHANNEL")
-else:
-  strNotifyChannel = None
-
-if os.getenv("NOTIFYTOKEN") != "" and os.getenv("NOTIFYTOKEN") is not None:
-  strNotifyToken = os.getenv("NOTIFYTOKEN")
-else:
-  strNotifyToken = None
-
-if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None:
-  bNotifyEnabled = False
-  print("Missing configuration items for Slack notifications, turning slack notifications off")
-else:
-  bNotifyEnabled = True
-
-def SendNotification (strMsg):
-  if not bNotifyEnabled:
-    return "FAIL. Notifications not enabled"
+  strNotifyURL = "https://slack.com/api/chat.postMessage"
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
   dictHeader["Accept"] = "application/json"
@@ -72,15 +51,28 @@ def SendNotification (strMsg):
           else:
             return "FAIL. Failed to send slack message:{} ".format(dictResponse["error"])
         else:
-          return "FAIL. Slack notification response: {}".format(dictResponse)
+          return "FAIL. Slack unexpected response from slack: {}".format(WebRequest.text)
       else:
-        return "FAIL. response is not a dictionary, here is what came back: {}".format(dictResponse)
+        return "FAIL. Failed to load response into a dictionary, here is what came back: {}".format(WebRequest.text)
   else:
-    return "FAIL. WebRequest not defined"
+    return "FAIL. WebRequest not defined, implies that the call was not attempted for some reason"
 
 def main():
-  print(SendNotification("More testing"))
+  if os.getenv("NOTIFYCHANNEL") != "" and os.getenv("NOTIFYCHANNEL") is not None:
+    strNotifyChannel = os.getenv("NOTIFYCHANNEL")
+  else:
+    strNotifyChannel = None
 
+  if os.getenv("NOTIFYTOKEN") != "" and os.getenv("NOTIFYTOKEN") is not None:
+    strNotifyToken = os.getenv("NOTIFYTOKEN")
+  else:
+    strNotifyToken = None
+
+  if strNotifyToken is None or strNotifyChannel is None:
+    print("unable to send notifications, missing either the token or the channel")
+    sys.exit(9)
+
+  print(SendNotification("More testing",strNotifyChannel,strNotifyToken))
 
 if __name__ == '__main__':
     main()
