@@ -34,12 +34,13 @@ def remove_tags(html):
     # parse html content
     soup = BeautifulSoup(html, "html.parser")
 
-    for data in soup(['style', 'script']):
-        # Remove tags
-        data.decompose()
+    #for data in soup(['style', 'script']):
+    #    # Remove tags
+    #    data.decompose()
 
     # return data by retrieving the tag content
-    return ' '.join(soup.stripped_strings)
+    #return ' '.join(soup.stripped_strings)
+    return soup.get_text()
 
 def CleanExit(strCause):
   # placeholder for a function that closes everything down 
@@ -226,7 +227,7 @@ def main():
   lstHeaders.append("X-Test4: fourt test header")
   #strAttachName = "MyData.md"
   strAttachName = strFilename +".md"
-  strSubject = "Complex HTML test with picture, table and attachment"
+  strSubject = "Complex HTML test with picture, table and MD attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
   strBody = "<h1>Welcome!!!!</h1>\n"
