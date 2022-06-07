@@ -207,6 +207,7 @@ def main():
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
+  strAttachName = "MyData.html"
   strSubject = "Complex HTML test with picture, table and attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
@@ -219,7 +220,7 @@ def main():
 
 
 # Call the function with all the proper parameters
-  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strHTMLTable)
+  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strHTMLTable,strAttachName)
 
 # Evaluate the response from the function
   if strReturn == "SUCCESS":
