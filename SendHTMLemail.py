@@ -23,11 +23,15 @@ from bs4 import BeautifulSoup
 import ssl
 
 # End imports
+
+# Define Few global Constants
 strPort = 465
 bUseTLS = False
 bUseStartTLS = False
 iDebugLevel = 0
 iTimeout = 15
+
+# End constants
 
 def remove_tags(html):
 
