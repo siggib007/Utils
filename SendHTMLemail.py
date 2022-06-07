@@ -188,7 +188,22 @@ def array2html(lstTable):
   strReturn += "</table>\n</body>\n</html>\n"
   return strReturn
 
-      
+
+def array2MD(lstTable):
+  i = 1
+  strReturn = "|"
+  for lstLineParts in lstTable:
+    strHeader = "|"
+    for strLineFields in lstLineParts:
+      strReturn += strLineFields.strip() + "|"
+      strHeader += "---|"
+    if i == 1:
+      strReturn += "\n"
+      strReturn += strHeader +"\n|"
+    else:
+      strReturn += "\n|"
+    i += 1
+  return strReturn[:-1]
 
 
 def main():
@@ -200,6 +215,7 @@ def main():
 #Generate test data
   lstTable = csv2array(strFilename+"."+strFileExt,strFieldDelim)
   strHTMLTable = array2html(lstTable)
+  strMDtable = array2MD(lstTable)
 
 # Prep to call the SendHTMLEmail function
   lstHeaders = []
@@ -207,7 +223,7 @@ def main():
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  strAttachName = "MyData.html"
+  strAttachName = "MyData.md"
   strSubject = "Complex HTML test with picture, table and attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
@@ -220,7 +236,7 @@ def main():
 
 
 # Call the function with all the proper parameters
-  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strHTMLTable,strAttachName)
+  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strMDtable,strAttachName)
 
 # Evaluate the response from the function
   if strReturn == "SUCCESS":
