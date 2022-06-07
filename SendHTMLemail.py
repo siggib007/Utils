@@ -124,7 +124,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachmen
   #Create the attachment
   if strAttachment != "":
     objAttachment = MIMEApplication(strAttachment,_subtype="html")
-    objAttachment.add_header("content_disposition","attachment","test.html")
+    objAttachment.add_header("content_disposition","attachment; filename='test.html'")
     objMsg.attach(objAttachment)
 
 # Send the email message
@@ -203,7 +203,7 @@ def main():
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  strSubject = "Complex HTML test with picture and table"
+  strSubject = "Complex HTML test with picture, table and attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
   strBody = "<h1>Welcome!!!!</h1>\n"
@@ -215,7 +215,7 @@ def main():
 
 
 # Call the function with all the proper parameters
-  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders)
+  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strHTMLTable)
 
 # Evaluate the response from the function
   if strReturn == "SUCCESS":
