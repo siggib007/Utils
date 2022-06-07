@@ -209,13 +209,14 @@ def array2MD(lstTable):
 def main():
 # Define statics
   strFilename = "URLResp"
-  strFileExt = "csv"
   strFieldDelim = ";"
 
 #Generate test data
-  lstTable = csv2array(strFilename+"."+strFileExt,strFieldDelim)
+  lstTable = csv2array(strFilename+".csv",strFieldDelim)
   strHTMLTable = array2html(lstTable)
-  strMDtable = array2MD(lstTable)
+  strMDtable = "# Our Dataset\n"
+  strMDtable += "Here is our data in a nice table format, hope it is useful\n"
+  strMDtable += array2MD(lstTable)
 
 # Prep to call the SendHTMLEmail function
   lstHeaders = []
@@ -223,7 +224,8 @@ def main():
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  strAttachName = "MyData.md"
+  #strAttachName = "MyData.md"
+  strAttachName = strFilename +".md"
   strSubject = "Complex HTML test with picture, table and attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
