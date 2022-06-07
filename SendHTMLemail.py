@@ -17,6 +17,8 @@ import email.policy
 import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.header import Header
 from bs4 import BeautifulSoup
 import ssl
 
@@ -50,7 +52,7 @@ def LogEntry(strmsg):
   # placeholder for your event logging function.
   print(strmsg)
 
-def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
+def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachment=""):
 # Function that sends an email
   
   global strPort
@@ -119,6 +121,12 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   objMsg.attach(oPart1)
   objMsg.attach(opart2)
 
+  #Create the attachment
+  if strAttachment != "":
+    objAttachment = MIMEApplication(strAttachment,_subtype="html")
+    objAttachment.add_header("content_disposition","attachment","test.html")
+    objMsg.attach(objAttachment)
+
 # Send the email message
   try:
     if bUseTLS:
@@ -139,17 +147,72 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   except smtplib.SMTPException as err:
     return "Error: unable to send email. {}".format(err)
 
+def csv2array(strFilename,strFieldDelim):
+  objFile = open(strFilename,"r")
+  strLines = objFile.readlines()
+  objFile.close()
+  lstReturn = []
+  for strLine in strLines:
+    strLine = strLine.strip()
+    if strFieldDelim in strLine:
+      lstLineParts = strLine.split(strFieldDelim)
+      lstReturn.append(lstLineParts)
+  return lstReturn
+
+def array2html(lstTable):
+  i = 1
+  strReturn = ""
+  strReturn += "<html\n<head>\n<style>\n"
+  strReturn += "table, th, td {\n"
+  strReturn += "  border: 1px solid black;\n"
+  strReturn += "  border-collapse: collapse;\n"
+  strReturn += "}\n"
+  strReturn += "</style>\n</head>\n<body>\n"
+  for lstLineParts in lstTable:
+    if i == 1:
+      strReturn += "<table>\n<tr>\n"
+      for strLineFields in lstLineParts:
+        strReturn += "<th>" + strLineFields.strip() + "</th>"
+      strReturn += "\n</tr>\n"
+      i += 1
+    else:
+      strReturn += "<tr>\n"
+      for strLineFields in lstLineParts:
+        strReturn += "<td>" + strLineFields.strip() + "</td>"
+      strReturn += "\n</tr>\n"
+      i += 1
+  strReturn += "</table>\n</body>\n</html>\n"
+  return strReturn
+
+      
+
+
 def main():
+# Define statics
+  strFilename = "URLResp"
+  strFileExt = "csv"
+  strFieldDelim = ";"
+
+#Generate test data
+  lstTable = csv2array(strFilename+"."+strFileExt,strFieldDelim)
+  strHTMLTable = array2html(lstTable)
+
 # Prep to call the SendHTMLEmail function
   lstHeaders = []
   lstHeaders.append("X-Testing: This is my test header")
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  strSubject = "Custom header test"
-  strBody = "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i> where we are testing for custom headers"
+  strSubject = "Complex HTML test with picture and table"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
+  strBody = "<h1>Welcome!!!!</h1>\n"
+  strBody += "This is a <i>supergeek test</i> where we are testing for custom headers<br>\n"
+  strBody += "I hope it works out great<br>\n"
+  strBody += "<p>Here is a cute picture for you</p>\n"
+  strBody += "<img src='https://img.xcitefun.net/users/2015/01/371695,xcitefun-cute-animals-pictures-41.jpg' width=100% >"
+  strBody += "<p>Let's add a table for fun!</p>\n" + strHTMLTable
+
 
 # Call the function with all the proper parameters
   strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders)
