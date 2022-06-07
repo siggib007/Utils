@@ -40,37 +40,49 @@ def remove_tags(html):
     return ' '.join(soup.stripped_strings)
 
 def CleanExit(strCause):
+  # placeholder for a function that closes everything down 
+  # and cleans things up before exiting from a error condition
+  
   print (strCause)
   sys.exit(9)
 
 def LogEntry(strmsg):
+  # placeholder for your event logging function.
   print(strmsg)
 
 def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
+# Function that sends an email
+  
   global strPort
   global bUseTLS
   global bUseStartTLS
 
+# Fetch the email server username from environment variable
   if os.getenv("EMAILUSER") != "" and os.getenv("EMAILUSER") is not None:
     strUser = os.getenv("EMAILUSER")
   else:
     return "FATAL ERROR: No email user name provided"
 
+# Fetch the email server password from environment variable, 
+# please store securely in secrets manager like doppler
   if os.getenv("EMAILPWD") != "" and os.getenv("EMAILPWD") is not None:
     strPWD = os.getenv("EMAILPWD")
   else:
     return "FATAL ERROR: No email user password provided"
 
+# Fetch the email server FQDN from environment variable
   if os.getenv("EMAILSERVER") != "" and os.getenv("EMAILSERVER") is not None:
     strServer = os.getenv("EMAILSERVER")
   else:
     return "FATAL ERROR: No email server provided"
 
+# Fetch the email server SMTP port number from environment variable
   if os.getenv("EMAILPORT") != "" and os.getenv("EMAILPORT") is not None:
     strPort = os.getenv("EMAILPORT")
   else:
     LogEntry("No server port provided, using the default of {}".format(strPort))
 
+# Fetch environment variable to indicate if SMTP connection supports SSL/TLS or not. Boolean
   if os.getenv("USESSL") != "" and os.getenv("USESSL") is not None:
     if os.getenv("USESSL").lower() == "true":
       bUseTLS = True
@@ -79,6 +91,8 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   else:
     LogEntry("No SSL directive provided, using the default of {}".format(bUseTLS))
 
+# Fetch environment variable to indicate if SMTP connection supports STARTTLS or not. Boolean
+# Only applicable if bUseTLS is false
   if os.getenv("USESTARTTLS") != "" and os.getenv("USESTARTTLS") is not None:
     if os.getenv("USESTARTTLS").lower() == "true":
       bUseStartTLS = True
@@ -87,6 +101,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   else:
     LogEntry("No SSL directive provided, using the default of {}".format(bUseStartTLS))
 
+# Compose the email message
   objMsg = MIMEMultipart('alternative')
   objMsg["To"] = strTo
   objMsg["From"] = strFrom
@@ -104,6 +119,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
   objMsg.attach(oPart1)
   objMsg.attach(opart2)
 
+# Send the email message
   try:
     if bUseTLS:
       objSMTP = smtplib.SMTP_SSL(strServer,strPort,timeout=iTimeout)
@@ -124,13 +140,21 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[]):
     return "Error: unable to send email. {}".format(err)
 
 def main():
+# Prep to call the SendHTMLEmail function
   lstHeaders = []
   lstHeaders.append("X-Testing: This is my test header")
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  strReturn = SendHTMLEmail("Custom header test", "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i> where we are testing for custom headers",
-                "Siggi Supergeek <siggi@bjarnason.us>", "Supergeek Admin <admin@supergeek.us>",lstHeaders)
+  strSubject = "Custom header test"
+  strBody = "<h1>Welcome!!!!</h1>\nThis is a <i>supergeek test</i> where we are testing for custom headers"
+  strTO = "Siggi Supergeek <siggi@bjarnason.us>"
+  strFrom = "Supergeek Admin <admin@supergeek.us>"
+
+# Call the function with all the proper parameters
+  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders)
+
+# Evaluate the response from the function
   if strReturn == "SUCCESS":
     LogEntry("Email sent successfully")
   elif strReturn[:5] == "Error":
