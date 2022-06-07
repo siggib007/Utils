@@ -18,7 +18,7 @@ import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-from email.header import Header
+
 from bs4 import BeautifulSoup
 import ssl
 
@@ -52,7 +52,7 @@ def LogEntry(strmsg):
   # placeholder for your event logging function.
   print(strmsg)
 
-def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachment=""):
+def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachment="",strAttachName=""):
 # Function that sends an email
   
   global strPort
@@ -123,9 +123,13 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachmen
 
   #Create the attachment
   if strAttachment != "":
-    objAttachment = MIMEApplication(strAttachment,_subtype="html")
-    objAttachment.add_header("content_disposition","attachment; filename='test.html'")
-    objMsg.attach(objAttachment)
+    if strAttachName == "":
+      return "Error: Attachment provided but no attachment name"
+    else:
+      lstFileParts = strAttachName.split(".")
+      objAttachment = MIMEApplication(strAttachment,_subtype=lstFileParts[1],name=strAttachName)
+      objAttachment.add_header("content_disposition","attachment")
+      objMsg.attach(objAttachment)
 
 # Send the email message
   try:
