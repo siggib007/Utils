@@ -224,11 +224,12 @@ def main():
   lstHeaders.append("X-Test2: Second test header")
   lstHeaders.append("X-Test3: third test header")
   lstHeaders.append("X-Test4: fourt test header")
-  #strAttachName = "MyData.md"
+
   strAttachName = strFilename +".md"
   strSubject = "Complex HTML test with picture, table and MD attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
+
   strBody = ""
   strBody += "<html>\n<head>\n<style>\n"
   strBody += "table, th, td {\n"
@@ -245,7 +246,7 @@ def main():
   strBody += "</body>\n</html>\n"
 
 # Call the function with all the proper parameters
-  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strMDtable,strAttachName)
+  strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders, strMDtable, strAttachName)
 
 # Evaluate the response from the function
   if strReturn == "SUCCESS":
