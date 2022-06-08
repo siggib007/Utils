@@ -171,12 +171,7 @@ def csv2array(strFilename,strFieldDelim):
 def array2html(lstTable):
   i = 1
   strReturn = ""
-  strReturn += "<html\n<head>\n<style>\n"
-  strReturn += "table, th, td {\n"
-  strReturn += "  border: 1px solid black;\n"
-  strReturn += "  border-collapse: collapse;\n"
-  strReturn += "}\n"
-  strReturn += "</style>\n</head>\n<body>\n"
+
   for lstLineParts in lstTable:
     if i == 1:
       strReturn += "<table>\n<tr>\n"
@@ -190,7 +185,7 @@ def array2html(lstTable):
         strReturn += "<td>" + strLineFields.strip() + "</td>"
       strReturn += "\n</tr>\n"
       i += 1
-  strReturn += "</table>\n</body>\n</html>\n"
+  strReturn += "</table>\n"
   return strReturn
 
 
@@ -234,13 +229,20 @@ def main():
   strSubject = "Complex HTML test with picture, table and MD attachment"
   strTO = "Siggi Supergeek <siggi@bjarnason.us>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
-  strBody = "<h1>Welcome!!!!</h1>\n"
+  strBody = ""
+  strBody += "<html>\n<head>\n<style>\n"
+  strBody += "table, th, td {\n"
+  strBody += "  border: 1px solid black;\n"
+  strBody += "  border-collapse: collapse;\n"
+  strBody += "}\n"
+  strBody += "</style>\n</head>\n<body>\n"
+  strBody += "<h1>Welcome!!!!</h1>\n"
   strBody += "This is a <i>supergeek test</i> where we are testing for custom headers<br>\n"
   strBody += "I hope it works out great<br>\n"
   strBody += "<p>Here is a cute picture for you</p>\n"
   strBody += "<img src='https://img.xcitefun.net/users/2015/01/371695,xcitefun-cute-animals-pictures-41.jpg' width=100% >"
   strBody += "<p>Let's add a table for fun!</p>\n" + strHTMLTable
-
+  strBody += "</body>\n</html>\n"
 
 # Call the function with all the proper parameters
   strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders,strMDtable,strAttachName)
