@@ -240,8 +240,8 @@ def main():
   strBody += "This is a <i>supergeek test</i> where we are testing for custom headers<br>\n"
   strBody += "I hope it works out great<br>\n"
   strBody += "<p>Here is a cute picture for you</p>\n"
-  strBody += "<img src='https://img.xcitefun.net/users/2015/01/371695,xcitefun-cute-animals-pictures-41.jpg' width=100% >"
-  strBody += "<p>Let's add a table for fun!</p>\n" + strHTMLTable
+  strBody += "<img src='https://img.xcitefun.net/users/2015/01/371695,xcitefun-cute-animals-pictures-41.jpg' width=100% >\n"
+  strBody += "<p>Let's add a table for funsies!</p>\n" + strHTMLTable
   strBody += "</body>\n</html>\n"
 
 # Call the function with all the proper parameters
