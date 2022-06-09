@@ -232,6 +232,8 @@ def main():
 
   strBody = ""
   strBody += "<html>\n<head>\n<style>\n"
+  strBody += "th {background-color: gray;color: white;}\n"
+  strBody += "tr:nth-child(odd) {background-color: beige;}\n"
   strBody += "table, th, td {\n"
   strBody += "  border: 1px solid black;\n"
   strBody += "  border-collapse: collapse;\n"
