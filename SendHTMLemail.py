@@ -227,7 +227,7 @@ def main():
 
   strAttachName = strFilename +".md"
   strSubject = "Complex HTML test with picture, table and MD attachment"
-  strTO = "Siggi Supergeek <siggi@bjarnason.us>"
+  strTO = "Joe User <joe.user@example.com>"
   strFrom = "Supergeek Admin <admin@supergeek.us>"
 
   strBody = ""
