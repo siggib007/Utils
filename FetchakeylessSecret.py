@@ -1,4 +1,3 @@
-from logging import exception
 import akeyless
 import os
 import sys
