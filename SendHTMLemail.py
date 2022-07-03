@@ -47,9 +47,9 @@ def remove_tags(html):
     return soup.get_text()
 
 def CleanExit(strCause):
-  # placeholder for a function that closes everything down 
+  # placeholder for a function that closes everything down
   # and cleans things up before exiting from a error condition
-  
+
   print (strCause)
   sys.exit(9)
 
@@ -58,38 +58,38 @@ def LogEntry(strmsg):
   print(strmsg)
 
 def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachment="",strAttachName=""):
-# Function that sends an email
-  
+  # Function that sends an email
+
   global strPort
   global bUseTLS
   global bUseStartTLS
 
-# Fetch the email server username from environment variable
+  # Fetch the email server username from environment variable
   if os.getenv("EMAILUSER") != "" and os.getenv("EMAILUSER") is not None:
     strUser = os.getenv("EMAILUSER")
   else:
     return "FATAL ERROR: No email user name provided"
 
-# Fetch the email server password from environment variable, 
-# please store securely in secrets manager like doppler
+  # Fetch the email server password from environment variable,
+  # please store securely in secrets manager like doppler
   if os.getenv("EMAILPWD") != "" and os.getenv("EMAILPWD") is not None:
     strPWD = os.getenv("EMAILPWD")
   else:
     return "FATAL ERROR: No email user password provided"
 
-# Fetch the email server FQDN from environment variable
+  # Fetch the email server FQDN from environment variable
   if os.getenv("EMAILSERVER") != "" and os.getenv("EMAILSERVER") is not None:
     strServer = os.getenv("EMAILSERVER")
   else:
     return "FATAL ERROR: No email server provided"
 
-# Fetch the email server SMTP port number from environment variable
+  # Fetch the email server SMTP port number from environment variable
   if os.getenv("EMAILPORT") != "" and os.getenv("EMAILPORT") is not None:
     strPort = os.getenv("EMAILPORT")
   else:
     LogEntry("No server port provided, using the default of {}".format(strPort))
 
-# Fetch environment variable to indicate if SMTP connection supports SSL/TLS or not. Boolean
+  # Fetch environment variable to indicate if SMTP connection supports SSL/TLS or not. Boolean
   if os.getenv("USESSL") != "" and os.getenv("USESSL") is not None:
     if os.getenv("USESSL").lower() == "true":
       bUseTLS = True
@@ -98,8 +98,8 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachmen
   else:
     LogEntry("No SSL directive provided, using the default of {}".format(bUseTLS))
 
-# Fetch environment variable to indicate if SMTP connection supports STARTTLS or not. Boolean
-# Only applicable if bUseTLS is false
+  # Fetch environment variable to indicate if SMTP connection supports STARTTLS or not. Boolean
+  # Only applicable if bUseTLS is false
   if os.getenv("USESTARTTLS") != "" and os.getenv("USESTARTTLS") is not None:
     if os.getenv("USESTARTTLS").lower() == "true":
       bUseStartTLS = True
@@ -108,7 +108,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachmen
   else:
     LogEntry("No SSL directive provided, using the default of {}".format(bUseStartTLS))
 
-# Compose the email message
+  # Compose the email message
   objMsg = MIMEMultipart('alternative')
   objMsg["To"] = strTo
   objMsg["From"] = strFrom
@@ -136,7 +136,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachmen
       objAttachment.add_header("content_disposition","attachment")
       objMsg.attach(objAttachment)
 
-# Send the email message
+  # Send the email message
   try:
     if bUseTLS:
       objSMTP = smtplib.SMTP_SSL(strServer,strPort,timeout=iTimeout)
@@ -152,7 +152,7 @@ def SendHTMLEmail(strSubject, strBody, strTo, strFrom,lstHeaders=[],strAttachmen
     LogEntry ("Successfully sent email via {} port {} to {}".format(strServer,strPort,strTo))
     return "SUCCESS"
   except ssl.SSLError as err:
-    return "SSL Error: {}".format(err)
+    return "Got an SSL Error: {}".format(err)
   except smtplib.SMTPException as err:
     return "Error: unable to send email. {}".format(err)
 
@@ -207,18 +207,18 @@ def array2MD(lstTable):
 
 
 def main():
-# Define statics
+  # Define statics
   strFilename = "URLResp"
   strFieldDelim = ";"
 
-#Generate test data
+  #Generate test data
   lstTable = csv2array(strFilename+".csv",strFieldDelim)
   strHTMLTable = array2html(lstTable)
   strMDtable = "# Our Dataset\n"
   strMDtable += "Here is our data in a nice table format, hope it is useful\n"
   strMDtable += array2MD(lstTable)
 
-# Prep to call the SendHTMLEmail function
+  # Prep to call the SendHTMLEmail function
   lstHeaders = []
   lstHeaders.append("X-Testing: This is my test header")
   lstHeaders.append("X-Test2: Second test header")
@@ -227,8 +227,8 @@ def main():
 
   strAttachName = strFilename +".md"
   strSubject = "Complex HTML test with picture, table and MD attachment"
-  strTO = "Joe User <joe.user@example.com>"
-  strFrom = "Supergeek Admin <admin@supergeek.us>"
+  strTO = "Siggi <siggi@bjarnason.us>"
+  strFrom = "Supergeek Admin <admin@infosechelp.net>"
 
   strBody = ""
   strBody += "<html>\n<head>\n<style>\n"
@@ -247,10 +247,10 @@ def main():
   strBody += "<p>Let's add a table for funsies!</p>\n" + strHTMLTable
   strBody += "</body>\n</html>\n"
 
-# Call the function with all the proper parameters
+  # Call the function with all the proper parameters
   strReturn = SendHTMLEmail(strSubject, strBody, strTO, strFrom, lstHeaders, strMDtable, strAttachName)
 
-# Evaluate the response from the function
+  # Evaluate the response from the function
   if strReturn == "SUCCESS":
     LogEntry("Email sent successfully")
   elif strReturn[:5] == "Error":
