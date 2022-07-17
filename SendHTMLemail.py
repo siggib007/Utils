@@ -9,7 +9,6 @@ pip install bs4
 '''
 
 # Import libraries
-import sys
 import os
 import smtplib
 import email.message
@@ -18,9 +17,15 @@ import email.utils
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-
-from bs4 import BeautifulSoup
 import ssl
+import sys
+import subprocess
+try:
+  from bs4 import BeautifulSoup
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'bs4'])
+finally:
+    from bs4 import BeautifulSoup
 
 # End imports
 

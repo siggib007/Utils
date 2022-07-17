@@ -26,11 +26,22 @@ pip install jason
 
 '''
 # Import libraries
-import sys
-import requests
-import json
 import os
 import string
+import sys
+import subprocess
+try:
+  import requests
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'requests'])
+finally:
+    import requests
+try:
+  import json
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'json'])
+finally:
+    import json
 # End imports
 
 #Global Variables/Constants

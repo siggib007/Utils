@@ -5,20 +5,35 @@ Website http://www.ipcalc.us/ and http://www.icecomputing.com
 
 Following packages need to be installed as administrator
 pip install requests
-pip install xmltodict
 pip install pymysql
 
 '''
 # Import libraries
-import sys
-import requests
 import os
 import time
-import xmltodict
 import urllib.parse as urlparse
-import pymysql
 import platform
-import json
+import sys
+import subprocess
+try:
+  import requests
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'requests'])
+finally:
+    import requests
+try:
+  import json
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'json'])
+finally:
+    import json
+try:
+  import pymysql
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'pymysql'])
+finally:
+    import pymysql
+
 # End imports
 
 ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")

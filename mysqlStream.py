@@ -1,7 +1,14 @@
 #pip install pymysql
-import pymysql
-import sys
+
 import time
+import sys
+import subprocess
+try:
+  import pymysql
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'pymysql'])
+finally:
+    import pymysql
 
 strServer = ""
 strUser = ""
@@ -75,7 +82,7 @@ for dbRow in dbCursor:
 		if strElement is None:
 			strLine += ","
 		else:
-			strLine += "{},".format(strElement[,100])
+			strLine += "{},".format(strElement[0,100])
 	if strLine[-1]==",":
 		strLine = strLine[:-1]
 	# print (strLine)

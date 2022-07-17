@@ -7,12 +7,18 @@ pip install pymysql
 
 '''
 # Import libraries
-import sys
 import os
 import time
 import platform
-import pymysql
 import shutil
+import sys
+import subprocess
+try:
+  import pymysql
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'pymysql'])
+finally:
+    import pymysql
 # End imports
 
 ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -207,7 +213,7 @@ def main():
   strScriptHost = platform.node().upper()
 
 
-  print ("This is a script to redeploy dynamic database table view files on VMInfo. " 
+  print ("This is a script to redeploy dynamic database table view files on VMInfo. "
           " This is running under Python Version {}".format(strVersion))
   print ("Running from: {}".format(strRealPath))
   dtNow = time.asctime()
@@ -247,4 +253,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

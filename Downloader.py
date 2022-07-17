@@ -14,15 +14,25 @@ pip install jason
 '''
 
 # Import libraries
-import sys
-import requests
+
 import os
-import string
 import time
 import urllib.parse as urlparse
-import subprocess as proc
 import platform
-import json
+import sys
+import subprocess
+try:
+  import requests
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'requests'])
+finally:
+    import requests
+try:
+  import json
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'json'])
+finally:
+    import json
 # End imports
 
 def SendNotification (strMsg):

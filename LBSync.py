@@ -8,13 +8,30 @@ pip install jason
 
 '''
 # Import libraries
-import sys
 import os
 import time
-import requests
 import platform
-import json
-import pymysql
+import sys
+import subprocess
+try:
+  import requests
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'requests'])
+finally:
+    import requests
+try:
+  import json
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'json'])
+finally:
+    import json
+try:
+  import pymysql
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'pymysql'])
+finally:
+    import pymysql
+
 
 # End imports
 
@@ -33,7 +50,7 @@ def FetchTextFile (strURL):
   if isinstance(WebRequest, requests.models.Response) == False:
     LogEntry ("response is unknown type")
     return None
-  
+
   return WebRequest.text
 
 def LogEntry(strMsg):
@@ -47,10 +64,10 @@ def CleanExit(strCause):
   print ("objLogOut closed")
   # if dbConn != "":
   #   dbConn.close()
-  # print ("dbConn closed")  
+  # print ("dbConn closed")
   # if VSVdbConn != "":
   #   VSVdbConn.close()
-  # print ("VSVdbConn closed")  
+  # print ("VSVdbConn closed")
   sys.exit(9)
 
 def DBClean(strText):
@@ -176,7 +193,7 @@ def FetchF5Data(strF5URL):
     #   strSNAT = strSNAT.replace(",","|")
     LogEntry ("Processing Node: {} VS: {}".format(strNodeName,strVSName))
     updateDB(strNodeName,strVSName,strVIP,strVIPPort,"Virtual")
-    
+
     iLineNum = 1
 
     if "IPs" in dictF5VS["Pool"]:
@@ -226,7 +243,7 @@ def FetchA10Data(strTableName):
     LogEntry ("No data returned")
   else:
     LogEntry ("Retrived {} rows".format(lstReturn[0]))
-  
+
   for dbRow in lstReturn[1]:
     strNodeName = dbRow[0]
     strVSName = dbRow[1]
@@ -353,7 +370,7 @@ def main():
   strScriptName = os.path.basename(sys.argv[0])
   iLoc = sys.argv[0].rfind(".")
   strConf_File = sys.argv[0][:iLoc] + ".ini"
-  
+
   if strBaseDir == "":
     iLoc = strRealPath.rfind("/")
     strBaseDir = strRealPath[:iLoc]
@@ -384,7 +401,7 @@ def main():
   strScriptHost = platform.node().upper()
   if strScriptHost in dictConfig:
     strScriptHost = dictConfig[strScriptHost]
-  
+
   LogEntry ("Starting {} on {}".format(strScriptName,strScriptHost))
 
   if "F5URL" in dictConfig:

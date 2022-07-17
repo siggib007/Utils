@@ -3,10 +3,6 @@ Script add integer version of an IP address to the service now csv feed.
 Author Siggi Bjarnason Copyright 2018
 Website http://www.ipcalc.us/ and http://www.icecomputing.com
 
-Following packages need to be installed as administrator
-pip install requests
-pip install xmltodict
-pip install pymysql
 
 '''
 # strFilein = "C:/temp/cmdb_ci_server.csv"
@@ -14,8 +10,7 @@ pip install pymysql
 
 import sys
 import os
-import getpass
-import time
+
 try:
 	import tkinter as tk
 	from tkinter import filedialog

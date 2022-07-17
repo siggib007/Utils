@@ -9,11 +9,8 @@ pip install pymysql
 
 '''
 # Import libraries
-import sys
 import os
-import string
 import time
-import pymysql
 import csv
 
 try:
@@ -23,6 +20,15 @@ try:
 except:
   print ("Failed to load tkinter, CLI only mode.")
   btKinterOK = False
+
+import sys
+import subprocess
+try:
+  import pymysql
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'pymysql'])
+finally:
+    import pymysql
 # End imports
 
 #Default values, overwrite these in the ini file
