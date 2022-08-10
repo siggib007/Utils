@@ -78,6 +78,7 @@ dbo = None
 strServer = ""
 
 def SendNotification (strMsg):
+  return
   dictNotify = {}
   dictNotify["token"] = strNotifyToken
   dictNotify["channel"] = strNotifyChannel
@@ -212,7 +213,7 @@ def SQLConn (strServer,strDBUser,strDBPWD,strInitialDB):
       import pymysql as dbo
       from pymysql import err as dboErr
       LogEntry ("Connecting to MySQL server {}".format(strServer))
-      return dbo.connect(strServer,strDBUser,strDBPWD,strInitialDB)
+      return dbo.connect(host=strServer,user=strDBUser,password=strDBPWD,db=strInitialDB)
     else:
       strError = ("Unknown database type: {}".format(strDBType))
   except dboErr.InternalError as err:
