@@ -68,7 +68,10 @@ def SendNotification(strMsg, strNotifyChannel, strNotifyToken):
   else:
     return "FAIL. WebRequest not defined, implies that the call was not attempted for some reason"
 
-def main():
+def initvars():
+  global strNotifyChannel
+  global strNotifyToken
+
   if os.getenv("NOTIFYCHANNEL") != "" and os.getenv("NOTIFYCHANNEL") is not None:
     strNotifyChannel = os.getenv("NOTIFYCHANNEL")
   else:
@@ -78,12 +81,20 @@ def main():
     strNotifyToken = os.getenv("NOTIFYTOKEN")
   else:
     strNotifyToken = None
-
+  
   if strNotifyToken is None or strNotifyChannel is None:
     print("unable to send notifications, missing either the token or the channel")
-    sys.exit(9)
+    return False
+  else:
+    return True
 
-  print(SendNotification("More testing",strNotifyChannel,strNotifyToken))
+def main():
+
+  bNotifyEnable = initvars()
+
+
+  if bNotifyEnable:
+    print(SendNotification("Some More testing",strNotifyChannel,strNotifyToken))
 
 if __name__ == '__main__':
     main()
