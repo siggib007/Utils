@@ -40,6 +40,12 @@ def CleanExit(strCause):
     objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
     print(strMsg)
 
+  if objFileOut is None:
+    objLogOut.write("Outfile not open")
+  else:
+    objFileOut.close()
+    objLogOut.write("Outfile closed")
+
   objLogOut.close()
   sys.exit(9)
 
@@ -139,13 +145,8 @@ def createSession(dictSession):
     strOut += "  Port " + str(iPort) + "\n"
   if strJump != "":
     strOut += "  ProxyCommand ssh -W %h:%p " + strJump + "\n"
-  tmpObj = GetFileHandle(strConfFile,"a")
-  if isinstance(tmpObj,str):
-    CleanExit(tmpObj)
-  else:
-    objFileOut = tmpObj
   objFileOut.write (strOut)
-  objFileOut.close()
+  return "success!"
 
 def isInt(CheckValue):
     """
@@ -166,10 +167,12 @@ def isInt(CheckValue):
 
 def main():
   global objLogOut
+  global objFileOut
   global strScriptName
   global strScriptHost
 
   strCSVName = "C:/temp/conntest.csv"
+  objFileOut = None
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
   lstSysArg = sys.argv
@@ -239,15 +242,23 @@ def main():
   else:
     objCSVIn = tmpObj
 
+  tmpObj = GetFileHandle(strConfFile,"w")
+  if isinstance(tmpObj,str):
+    CleanExit(tmpObj)
+  else:
+    objFileOut = tmpObj
+  LogEntry("{} created".format(strConfFile),4)
+
   objReader = csv.DictReader(objCSVIn)
   for dictTemp in objReader:
-    LogEntry("Working on {} - {}".format(dictTemp["Path"],dictTemp["HostName"]),4)
+    LogEntry("Working on {} - {} - jump: {}".format(dictTemp["Label"],dictTemp["Address"],dictTemp["Jump"]),4)
     strRet = createSession(dictTemp)
-    LogEntry("create session returned:{}".format(strRet),4)
+    LogEntry("create session returned: {}".format(strRet),4)
 
   # Closing thing out
   LogEntry("Done!", 1)
   objLogOut.close()
+  objFileOut.close()
 
 
 if __name__ == '__main__':
