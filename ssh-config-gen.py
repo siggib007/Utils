@@ -14,7 +14,7 @@ import csv
 import platform
 
 iLogLevel = 5  # How much logging should be done. Level 10 is debug level, 0 is none
-strConfFile = "C:/Users/siggib/.ssh/config.tst"
+strConfFile = "C:/Users/siggib/.ssh/config"
 
 def getInput(strPrompt):
   if sys.version_info[0] > 2:
@@ -121,8 +121,8 @@ def createSession(dictSession):
     strAddress = ""
   if strAddress == "":
      return "No Address"
-  if "User" in dictSession:
-    strUser = dictSession["User"]  or ""
+  if "Username" in dictSession:
+    strUser = dictSession["Username"]  or ""
   else:
     strUser = ""
   if "Jump" in dictSession:
@@ -171,7 +171,7 @@ def main():
   global strScriptName
   global strScriptHost
 
-  strCSVName = "C:/temp/conntest.csv"
+  strCSVName = ""
   objFileOut = None
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
