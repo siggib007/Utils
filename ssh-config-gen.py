@@ -14,7 +14,12 @@ import csv
 import platform
 
 iLogLevel = 5  # How much logging should be done. Level 10 is debug level, 0 is none
-strConfFile = "C:/Users/siggib/.ssh/config"
+if platform.system() == "Windows":
+  strProfile = os.environ["USERPROFILE"]
+  strProfile = strProfile.replace("\\","/")
+else:
+  strProfile = "~"
+strConfFile = strProfile + "/.ssh/config"
 
 def getInput(strPrompt):
   if sys.version_info[0] > 2:
