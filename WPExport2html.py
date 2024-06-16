@@ -13,14 +13,12 @@ pip install xmltodict
 # Import libraries
 import sys
 import os
-import string
 import time
 import requests
 import xmltodict
 import urllib.parse as urlparse
 import subprocess as proc
 import xml.parsers.expat
-import platform
 try:
   import tkinter as tk
   from tkinter import filedialog
@@ -38,7 +36,7 @@ requests.urllib3.disable_warnings()
 lstHTMLElements = ["</a>", "</p>", "</ol>",
                    "</li>", "</ul>", "</span>", "</div>"]
 
-lstBadChar = ["?", "!", "'", '"', "~", "#", "%", "&", "*", ":", "<", ">", "?", "/", "\\", 
+lstBadChar = ["?", "!", "'", '"', "~", "#", "%", "&", "*", ":", "<", ">", "?", "/", "\\",
               "{", " | ", "}", "$", "!", "@", "+", "=", "`"]
 
 def CleanFileName(strClean):
@@ -47,7 +45,7 @@ def CleanFileName(strClean):
 
   for cBad in lstBadChar:
     strClean = strClean.replace(cBad, "")
-  
+
   strClean = strClean.replace(".","-")
   strClean = strClean.strip()
   return strClean
@@ -78,7 +76,7 @@ def FetchFile (strURL):
   if isinstance(WebRequest, requests.models.Response) == False:
     LogEntry ("response is unknown type")
     return None
-  
+
   return WebRequest.content
 
 def LogEntry(strMsg):
@@ -194,7 +192,7 @@ if "rss" in dictInput:
             if IsHTML(strContent):
               strFileOut = strItemPath + strPostTitle + ".html"
               strContent = "<h1>{}</h1>\n<h2>{} by {}. Posted on {} GMT</h2>\n{}".format(
-                  dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"], 
+                  dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"],
                   dictItem["wp:post_date_gmt"], strContent)
             else:
               strFileOut = strItemPath + strPostTitle + ".txt"
@@ -206,7 +204,7 @@ if "rss" in dictInput:
               objFileOut.write(strContent)
             except Exception as err:
               LogEntry ("Error while write to file {}. {}".format(strFileOut,err))
-            
+
             objFileOut.close()
           elif strPostType == "attachment":
             strItemPath = strOutPath + strPostType
@@ -220,7 +218,8 @@ if "rss" in dictInput:
             iLoc = strURL.rfind("/")+1
             strFileOut = strItemPath + strURL[iLoc:]
             LogEntry ("Fetching URL: {}".format(strURL))
-            strContent = FetchFile(strURL)
+            #strContent = FetchFile(strURL)
+            strContent = None
             if strContent is not None:
               LogEntry ("Saving attachment to {}".format(strFileOut))
               objFileOut = open(strFileOut, "wb", 1)
@@ -245,3 +244,10 @@ else:
 LogEntry ("Done! Was missing ways to handle these types:")
 for strKey in dictMissing.keys():
   LogEntry ("{}: {}".format(strKey,",".join(dictMissing[strKey])))
+
+lstDirectory = os.listdir(strItemPath)
+#print("content of {} is \n{}".format(strItemPath,lstDirectory))
+for strFileName in lstDirectory:
+  if strFileName.endswith(".html"):
+    if not os.path.splitext(strFileName)[0]+".docx" in lstDirectory:
+      print(strFileName)
