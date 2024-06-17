@@ -9,6 +9,11 @@ This script will read an Wordpress export XML file, download all attachments and
 Following packages need to be installed as administrator
 pip install xmltodict
 
+Also make sure you have pandoc installed, here is a good way on windows
+winget install --source winget --exact --id JohnMacFarlane.Pandoc
+
+Or grab your correct install from https://github.com/jgm/pandoc/releases/latest
+
 '''
 # Import libraries
 import sys
