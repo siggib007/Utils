@@ -14,17 +14,29 @@ pip install xmltodict
 import sys
 import os
 import time
-import requests
-import xmltodict
 import urllib.parse as urlparse
-import subprocess as proc
+import subprocess
 import xml.parsers.expat
+try:
+    import requests
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'requests'])
+finally:
+    import requests
+
+try:
+    import xmltodict
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 'xmltodict'])
+finally:
+    import xmltodict
+
 try:
   import tkinter as tk
   from tkinter import filedialog
   btKinterOK = True
 except:
-  print ("Failed to load tkinter, CLI only mode.")
+  print("Failed to load tkinter, CLI only mode.")
   btKinterOK = False
 
 # End imports
@@ -50,12 +62,11 @@ def CleanFileName(strClean):
   strClean = strClean.strip()
   return strClean
 
-
 def getInput(strPrompt):
   if sys.version_info[0] > 2 :
     return input(strPrompt)
   else:
-    print ("please upgrade to python 3")
+    print("please upgrade to python 3")
     sys.exit(5)
 
 def IsHTML(strCheck):
@@ -70,11 +81,11 @@ def FetchFile (strURL):
   try:
     WebRequest = requests.get(strURL, headers={}, verify=False)
   except Exception as err:
-    LogEntry ("Issue with API call. {}".format(err))
+    LogEntry("Issue with API call. {}".format(err))
     return None
 
   if isinstance(WebRequest, requests.models.Response) == False:
-    LogEntry ("response is unknown type")
+    LogEntry("response is unknown type")
     return None
 
   return WebRequest.content
@@ -84,170 +95,184 @@ def LogEntry(strMsg):
 	objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
 	print(strMsg)
 
-ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
+def Convert2doc(strPath):
+  lstDirectory = os.listdir(strPath)
+  print("\n\n Converting html files in {} to docx via pandoc \n".format(strPath))
+  for strFileName in lstDirectory:
+    if strFileName.endswith(".html"):
+      strCmd = 'pandoc "' + strPath + strFileName + '" -o "' + strPath + os.path.splitext(strFileName)[0] + '.docx"'
+      subprocess.call(strCmd)
 
-strBaseDir = os.path.dirname(sys.argv[0])
-strBaseDir = strBaseDir.replace("\\", "/")
-strRealPath = os.path.realpath(sys.argv[0])
-strRealPath = strRealPath.replace("\\","/")
-if strBaseDir == "":
-  iLoc = strRealPath.rfind("/")
-  strBaseDir = strRealPath[:iLoc]
-if strBaseDir[-1:] != "/":
-  strBaseDir += "/"
-strLogDir  = strBaseDir + "Logs/"
-if strLogDir[-1:] != "/":
-  strLogDir += "/"
+def main():
+  global objLogOut
 
-iLoc = sys.argv[0].rfind(".")
+  ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
 
-if not os.path.exists (strLogDir) :
-  os.makedirs(strLogDir)
-  print ("\nPath '{0}' for log files didn't exists, so I create it!\n".format(strLogDir))
+  strBaseDir = os.path.dirname(sys.argv[0])
+  strBaseDir = strBaseDir.replace("\\", "/")
+  strRealPath = os.path.realpath(sys.argv[0])
+  strRealPath = strRealPath.replace("\\","/")
+  if strBaseDir == "":
+    iLoc = strRealPath.rfind("/")
+    strBaseDir = strRealPath[:iLoc]
+  if strBaseDir[-1:] != "/":
+    strBaseDir += "/"
+  strLogDir  = strBaseDir + "Logs/"
+  if strLogDir[-1:] != "/":
+    strLogDir += "/"
 
-strScriptName = os.path.basename(sys.argv[0])
-iLoc = strScriptName.rfind(".")
-strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
-objLogOut = open(strLogFile, "w", 1)
+  iLoc = sys.argv[0].rfind(".")
 
-strFilein = ""
-dictMissing = {}
-sa = sys.argv
-lsa = len(sys.argv)
-if lsa > 1:
-  strFilein = sa[1]
+  if not os.path.exists (strLogDir) :
+    os.makedirs(strLogDir)
+    print("\nPath '{0}' for log files didn't exists, so I create it!\n".format(strLogDir))
 
-if strFilein == "":
-  if btKinterOK:
-    print ("File name to be processed is missing. Opening up a file open dialog box, please select the file you wish to process.")
-    root = tk.Tk()
-    root.withdraw()
-    strFilein = filedialog.askopenfilename (title = "Select the WP Export file",filetypes = (("XML files","*.xml"),("all files","*.*")))
-  else:
-    strFilein = getInput("Please provide full path and filename for the WP Export file to be processed: ")
+  strScriptName = os.path.basename(sys.argv[0])
+  iLoc = strScriptName.rfind(".")
+  strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
+  objLogOut = open(strLogFile, "w", 1)
 
-if strFilein == "":
-  print ("No filename provided unable to continue")
-  sys.exit(9)
+  strFilein = ""
+  dictMissing = {}
+  sa = sys.argv
+  lsa = len(sys.argv)
+  if lsa > 1:
+    strFilein = sa[1]
 
-if os.path.isfile(strFilein):
-  print ("OK found {}".format(strFilein))
-else:
-  print ("Can't find WP export file {}".format(strFilein))
-  sys.exit(4)
-
-
-iLoc = strFilein.rfind(".")
-strFileExt = strFilein[iLoc+1:]
-iLoc = strFilein.find(".")
-strOutPath = strFilein[:iLoc]
-if strOutPath[-1:] != "/":
-	strOutPath += "/"
-
-if not os.path.exists(strOutPath):
-  os.makedirs(strOutPath)
-  LogEntry("\nPath '{0}' for the output files didn't exists, so I create it!\n".format(
-      strOutPath))
-else:
-  LogEntry ("Path {} is OK".format(strOutPath))
-
-if strFileExt.lower() == "xml":
-  objFileIn = open(strFilein, "r", encoding='utf-8')
-else:
-  LogEntry ("only able to process XML files. Unable to process {} files".format(strFileExt))
-  sys.exit(5)
-
-
-strXML = objFileIn.read()
-try:
-    dictInput = xmltodict.parse(strXML)
-except xml.parsers.expat.ExpatError as err:
-    LogEntry ("Expat Error: {}\n{}".format(err,strXML))
-    iErrCode = "Expat Error"
-    iErrText = "Expat Error: {}\n{}".format(err,strXML)
-
-LogEntry ("File read in, here are top level keys {}".format(dictInput.keys()))
-if "rss" in dictInput:
-  if "channel" in dictInput["rss"]:
-    if "item" in dictInput["rss"]["channel"]:
-      if isinstance (dictInput["rss"]["channel"]["item"],list):
-        # LogEntry("Here are the keys in first item entry: {}".format(
-        #     dictInput["rss"]["channel"]["item"][0].keys()))
-        for dictItem in dictInput["rss"]["channel"]["item"]:
-          strPostType = dictItem["wp:post_type"]
-          strPostTitle = dictItem["title"]
-          strContent = dictItem["content:encoded"]
-          if strPostTitle is None:
-            strPostTitle = "None"
-          else:
-            strPostTitle = CleanFileName (strPostTitle)
-          if strPostType[:4] == "post" or strPostType == "page":
-            strItemPath = strOutPath + strPostType
-            if strItemPath[-1:] != "/":
-              strItemPath += "/"
-            if not os.path.exists(strItemPath):
-              os.makedirs(strItemPath)
-              LogEntry("\nPath '{0}' for the output files didn't exists, so I create it!\n".format(
-                  strItemPath))
-            if IsHTML(strContent):
-              strFileOut = strItemPath + strPostTitle + ".html"
-              strContent = "<h1>{}</h1>\n<h2>{} by {}. Posted on {} GMT</h2>\n{}".format(
-                  dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"],
-                  dictItem["wp:post_date_gmt"], strContent)
-            else:
-              strFileOut = strItemPath + strPostTitle + ".txt"
-              strContent = "{}\n{} by {}. Posted on {} GMT\n{}".format(
-                  dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"],
-                  dictItem["wp:post_date_gmt"], strContent)
-            objFileOut = open(strFileOut,"w",1)
-            try:
-              objFileOut.write(strContent)
-            except Exception as err:
-              LogEntry ("Error while write to file {}. {}".format(strFileOut,err))
-
-            objFileOut.close()
-          elif strPostType == "attachment":
-            strItemPath = strOutPath + strPostType
-            if strItemPath[-1:] != "/":
-              strItemPath += "/"
-            if not os.path.exists(strItemPath):
-              os.makedirs(strItemPath)
-              LogEntry("\nPath '{0}' for the output files didn't exists, so I create it!\n".format(
-                  strItemPath))
-            strURL = dictItem["wp:attachment_url"]
-            iLoc = strURL.rfind("/")+1
-            strFileOut = strItemPath + strURL[iLoc:]
-            LogEntry ("Fetching URL: {}".format(strURL))
-            #strContent = FetchFile(strURL)
-            strContent = None
-            if strContent is not None:
-              LogEntry ("Saving attachment to {}".format(strFileOut))
-              objFileOut = open(strFileOut, "wb", 1)
-              objFileOut.write(strContent)
-              objFileOut.close()
-          else:
-            if strPostType not in dictMissing:
-              dictMissing[strPostType] = dictItem.keys()
-
-          LogEntry("{} | {} | {} ".format(
-              dictItem["title"], strPostType, dictItem["dc:creator"]))
-      else:
-        LogEntry("item is not a list, it is a {}".format(
-            type(dictInput["rss"]["channel"]["item"])))
+  if strFilein == "":
+    if btKinterOK:
+      print("File name to be processed is missing. Opening up a file open dialog box, please select the file you wish to process.")
+      root = tk.Tk()
+      root.withdraw()
+      strFilein = filedialog.askopenfilename (title = "Select the WP Export file",filetypes = (("XML files","*.xml"),("all files","*.*")))
     else:
-      LogEntry ("No Item list")
+      strFilein = getInput("Please provide full path and filename for the WP Export file to be processed: ")
+
+  if strFilein == "":
+    print("No filename provided unable to continue")
+    sys.exit(9)
+
+  if os.path.isfile(strFilein):
+    print("OK found {}".format(strFilein))
   else:
-    LogEntry ("No channel item")
-else:
-  LogEntry ("No rss feed")
+    print("Can't find WP export file {}".format(strFilein))
+    sys.exit(4)
 
-LogEntry ("Done! Was missing ways to handle these types:")
-for strKey in dictMissing.keys():
-  LogEntry ("{}: {}".format(strKey,",".join(dictMissing[strKey])))
 
-lstDirectory = os.listdir(strItemPath)
-#print("content of {} is \n{}".format(strItemPath,lstDirectory))
-for strFileName in lstDirectory:
-  if strFileName.endswith(".html"):
-    if not os.path.splitext(strFileName)[0]+".docx" in lstDirectory:
-      print(strFileName)
+  iLoc = strFilein.rfind(".")
+  strFileExt = strFilein[iLoc+1:]
+  iLoc = strFilein.find(".")
+  strOutPath = strFilein[:iLoc]
+  if strOutPath[-1:] != "/":
+    strOutPath += "/"
+
+  if not os.path.exists(strOutPath):
+    os.makedirs(strOutPath)
+    LogEntry("\nPath '{0}' for the output files didn't exists, so I create it!\n".format(
+        strOutPath))
+  else:
+    LogEntry("Path {} is OK".format(strOutPath))
+
+  if strFileExt.lower() == "xml":
+    objFileIn = open(strFilein, "r", encoding='utf-8')
+  else:
+    LogEntry("only able to process XML files. Unable to process {} files".format(strFileExt))
+    sys.exit(5)
+
+
+  strXML = objFileIn.read()
+  objFileIn.close()
+  try:
+      dictInput = xmltodict.parse(strXML)
+  except xml.parsers.expat.ExpatError as err:
+      LogEntry("Expat Error: {}\n{}".format(err,strXML))
+      iErrCode = "Expat Error"
+      iErrText = "Expat Error: {}\n{}".format(err,strXML)
+
+  LogEntry("File read in, here are top level keys {}".format(dictInput.keys()))
+  if "rss" in dictInput:
+    if "channel" in dictInput["rss"]:
+      if "item" in dictInput["rss"]["channel"]:
+        if isinstance (dictInput["rss"]["channel"]["item"],list):
+          # LogEntry("Here are the keys in first item entry: {}".format(
+          #     dictInput["rss"]["channel"]["item"][0].keys()))
+          for dictItem in dictInput["rss"]["channel"]["item"]:
+            strPostType = dictItem["wp:post_type"]
+            strPostTitle = dictItem["title"]
+            strContent = dictItem["content:encoded"]
+            if strPostTitle is None:
+              strPostTitle = "None"
+            else:
+              strPostTitle = CleanFileName (strPostTitle)
+            if strPostType[:4] == "post" or strPostType == "page":
+              strItemPath = strOutPath + strPostType
+              if strItemPath[-1:] != "/":
+                strItemPath += "/"
+              if not os.path.exists(strItemPath):
+                os.makedirs(strItemPath)
+                LogEntry("\nPath '{0}' for the output files didn't exists, so I create it!\n".format(
+                    strItemPath))
+              if IsHTML(strContent):
+                strFileOut = strItemPath + strPostTitle + ".html"
+                strContent = "<h1>{}</h1>\n<h2>{} by {}. Posted on {} GMT</h2>\n{}".format(
+                    dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"],
+                    dictItem["wp:post_date_gmt"], strContent)
+              else:
+                strFileOut = strItemPath + strPostTitle + ".txt"
+                strContent = "{}\n{} by {}. Posted on {} GMT\n{}".format(
+                    dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"],
+                    dictItem["wp:post_date_gmt"], strContent)
+              objFileOut = open(strFileOut,"w",1)
+              try:
+                objFileOut.write(strContent)
+              except Exception as err:
+                LogEntry("Error while write to file {}. {}".format(strFileOut,err))
+
+              objFileOut.close()
+            elif strPostType == "attachment":
+              strItemPath = strOutPath + strPostType
+              if strItemPath[-1:] != "/":
+                strItemPath += "/"
+              if not os.path.exists(strItemPath):
+                os.makedirs(strItemPath)
+                LogEntry("\nPath '{0}' for the output files didn't exists, so I create it!\n".format(
+                    strItemPath))
+              strURL = dictItem["wp:attachment_url"]
+              iLoc = strURL.rfind("/")+1
+              strFileOut = strItemPath + strURL[iLoc:]
+              LogEntry("Fetching URL: {}".format(strURL))
+              strContent = FetchFile(strURL)
+              if strContent is not None:
+                LogEntry("Saving attachment to {}".format(strFileOut))
+                objFileOut = open(strFileOut, "wb", 1)
+                objFileOut.write(strContent)
+                objFileOut.close()
+            else:
+              if strPostType not in dictMissing:
+                dictMissing[strPostType] = dictItem.keys()
+
+            LogEntry("{} | {} | {} ".format(
+                dictItem["title"], strPostType, dictItem["dc:creator"]))
+        else:
+          LogEntry("item is not a list, it is a {}".format(
+              type(dictInput["rss"]["channel"]["item"])))
+      else:
+        LogEntry("No Item list")
+    else:
+      LogEntry("No channel item")
+  else:
+    LogEntry("No rss feed")
+
+  #LogEntry("Done! Was missing ways to handle these types:")
+  #for strKey in dictMissing.keys():
+  #  LogEntry("{}: {}".format(strKey,",".join(dictMissing[strKey])))
+
+  Convert2doc(strOutPath + "page/")
+  Convert2doc(strOutPath + "post/")
+
+  LogEntry("Done!")
+  objLogOut.close()
+  print("Log closed")
+
+if __name__ == '__main__':
+    main()
