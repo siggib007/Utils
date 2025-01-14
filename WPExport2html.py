@@ -102,7 +102,8 @@ def CleanFileName(strClean):
 
   strClean = strClean.replace(".","-")
   strClean = strClean.strip()
-  strClean = strClean[:50]
+  if len(strClean) > 50:
+    strClean = strClean[:50] + strClean[-4:]
   return strClean
 
 def getInput(strPrompt):
@@ -284,7 +285,7 @@ def main():
                     strItemPath))
               strURL = dictItem["wp:attachment_url"]
               iLoc = strURL.rfind("/")+1
-              strFileOut = strItemPath + strURL[iLoc:]
+              strFileOut = strItemPath + CleanFileName(strURL[iLoc:])
               LogEntry("Fetching URL: {}".format(strURL))
               strContent = FetchFile(strURL)
               if strContent is not None:
