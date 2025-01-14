@@ -190,9 +190,8 @@ def main():
   try:
       dictInput = xmltodict.parse(strXML)
   except xml.parsers.expat.ExpatError as err:
-      LogEntry("Expat Error: {}\n{}".format(err,strXML))
-      iErrCode = "Expat Error"
-      iErrText = "Expat Error: {}\n{}".format(err,strXML)
+      dictInput={}
+      LogEntry("Expat Error: {}\n{}".format(err,strXML[:99]))
 
   LogEntry("File read in, here are top level keys {}".format(dictInput.keys()))
   if "rss" in dictInput:
@@ -272,8 +271,10 @@ def main():
   #for strKey in dictMissing.keys():
   #  LogEntry("{}: {}".format(strKey,",".join(dictMissing[strKey])))
 
-  Convert2doc(strOutPath + "page/")
-  Convert2doc(strOutPath + "post/")
+  if os.path.exists(strOutPath + "page/"):
+    Convert2doc(strOutPath + "page/")
+  if os.path.exists(strOutPath + "post/"):
+    Convert2doc(strOutPath + "post/")
 
   LogEntry("Done!")
   objLogOut.close()

@@ -13,7 +13,7 @@ import sys
 import csv
 import platform
 
-csvDelim = ","
+csvDelim = ";"
 iLogLevel = 5  # How much logging should be done. Level 10 is debug level, 0 is none
 if platform.system() == "Windows":
     strProfile = os.environ["USERPROFILE"]
