@@ -56,6 +56,40 @@ lstHTMLElements = ["</a>", "</p>", "</ol>",
 lstBadChar = ["?", "!", "'", '"', "~", "#", "%", "&", "*", ":", "<", ">", "?", "/", "\\",
               "{", " | ", "}", "$", "!", "@", "+", "=", "`"]
 
+def GetFileHandle(strFileName, strperm):
+    """
+    This wraps error handling around standard file open function
+    Parameters:
+      strFileName: Simple string with filename to be opened
+      strperm: single character string, usually w or r to indicate read vs write.
+      other options such as "a" and "x" are valid too.
+    Returns:
+      File Handle object
+    """
+    dictModes = {}
+    dictModes["w"] = "writing"
+    dictModes["r"] = "reading"
+    dictModes["a"] = "appending"
+    dictModes["x"] = "opening"
+    dictModes["wb"] = "binary write"
+
+    cMode = strperm[:2].lower().strip()
+
+    try:
+        objFileHndl = open(strFileName, strperm, encoding='utf8')
+        return objFileHndl
+    except PermissionError:
+        LogEntry("unable to open output file {} for {}, "
+              "permission denied.".format(strFileName, dictModes[cMode]))
+        return ("Permission denied")
+    except FileNotFoundError:
+        LogEntry("unable to open output file {} for {}, "
+              "Issue with the path".format(strFileName, dictModes[cMode]))
+        return ("FileNotFound")
+    except Exception as err:
+      LogEntry("Unknown error: {}".format(err))
+      return ("unknowErr")
+
 def CleanFileName(strClean):
   if strClean is None:
     return ""
@@ -135,7 +169,7 @@ def main():
   strScriptName = os.path.basename(sys.argv[0])
   iLoc = strScriptName.rfind(".")
   strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
-  objLogOut = open(strLogFile, "w", 1)
+  objLogOut = GetFileHandle(strLogFile, "w")
 
   strFilein = ""
   dictMissing = {}
@@ -179,7 +213,7 @@ def main():
     LogEntry("Path {} is OK".format(strOutPath))
 
   if strFileExt.lower() == "xml":
-    objFileIn = open(strFilein, "r", encoding='utf-8')
+    objFileIn = GetFileHandle (strFilein, "r")
   else:
     LogEntry("only able to process XML files. Unable to process {} files".format(strFileExt))
     sys.exit(5)
@@ -226,13 +260,13 @@ def main():
                 strContent = "{}\n{} by {}. Posted on {} GMT\n{}".format(
                     dictItem["title"], strPostType[0].upper()+strPostType[1:], dictItem["dc:creator"],
                     dictItem["wp:post_date_gmt"], strContent)
-              objFileOut = open(strFileOut,"w",1)
-              try:
-                objFileOut.write(strContent)
-              except Exception as err:
-                LogEntry("Error while write to file {}. {}".format(strFileOut,err))
-
-              objFileOut.close()
+              objFileOut = GetFileHandle(strFileOut,"w")
+              if not isinstance(objFileOut,str):
+                try:
+                  objFileOut.write(strContent)
+                except Exception as err:
+                  LogEntry("Error while write to file {}. {}".format(strFileOut,err))
+                objFileOut.close()
             elif strPostType == "attachment":
               strItemPath = strOutPath + strPostType
               if strItemPath[-1:] != "/":
@@ -248,9 +282,13 @@ def main():
               strContent = FetchFile(strURL)
               if strContent is not None:
                 LogEntry("Saving attachment to {}".format(strFileOut))
-                objFileOut = open(strFileOut, "wb", 1)
-                objFileOut.write(strContent)
-                objFileOut.close()
+                objFileOut = GetFileHandle(strFileOut, "wb")
+                if not isinstance(objFileOut,str):
+                  try:
+                    objFileOut.write(strContent)
+                  except Exception as err:
+                    LogEntry("Error while write to file {}. {}".format(strFileOut,err))
+                  objFileOut.close()
             else:
               if strPostType not in dictMissing:
                 dictMissing[strPostType] = dictItem.keys()
