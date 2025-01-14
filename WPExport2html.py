@@ -76,7 +76,10 @@ def GetFileHandle(strFileName, strperm):
     cMode = strperm[:2].lower().strip()
 
     try:
-        objFileHndl = open(strFileName, strperm, encoding='utf8')
+        if len(strperm) > 1:
+          objFileHndl = open(strFileName, strperm)
+        else:
+          objFileHndl = open(strFileName, strperm, encoding='utf8')
         return objFileHndl
     except PermissionError:
         LogEntry("unable to open output file {} for {}, "
