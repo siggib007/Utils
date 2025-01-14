@@ -102,6 +102,7 @@ def CleanFileName(strClean):
 
   strClean = strClean.replace(".","-")
   strClean = strClean.strip()
+  strClean = strClean[:50]
   return strClean
 
 def getInput(strPrompt):
@@ -143,7 +144,10 @@ def Convert2doc(strPath):
   for strFileName in lstDirectory:
     if strFileName.endswith(".html"):
       strCmd = 'pandoc "' + strPath + strFileName + '" -o "' + strPath + os.path.splitext(strFileName)[0] + '.docx"'
-      subprocess.call(strCmd)
+      try:
+        subprocess.call(strCmd)
+      except Exception as err:
+        LogEntry("Failure during Conver2Doc: {}".format(err))
 
 def main():
   global objLogOut
