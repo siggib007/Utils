@@ -254,6 +254,7 @@ def main():
   dictHeader["Accept"] = "application/json"
   dictHeader["Cache-Control"] = "no-cache"
   dictHeader["Connection"] = "keep-alive"
+  dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
 
   WebRequest = GetURL(strGetURL,dictHeader)
   if iVerbose > 0:
@@ -266,17 +267,24 @@ def main():
   strHTML = WebRequest.text
   objSoup = BeautifulSoup(strHTML,features="html.parser")
   lstLinks = []
+  dictLinks = {}
   for objLink in objSoup.findAll("a"):
     strTemp = objLink.get("href")
     if strTemp[:4].lower() == "http" and strTemp != strGetURL:
       lstLinks.append(strTemp)
+
       WebRequest = GetURL(strTemp, dictHeader)
       iLen = len(strGetURL)
       if strTemp[:iLen] == strGetURL:
         bDig = True
       else:
         bDig = False
-      print("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
+      if strTemp not in dictLinks:
+        dictLinks[strTemp] = {}
+        dictLinks[strTemp]["code"] = WebRequest.status_code
+        dictLinks[strTemp]["dig"] = bDig
+      if WebRequest.status_code != 200:
+        print("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
   #print("List of links:\n{}".format(lstLinks))
   LogEntry("Done!!")
 
