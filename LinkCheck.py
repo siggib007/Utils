@@ -94,7 +94,7 @@ def GetURL(strGetURL,dictHeader):
     LogEntry ("Doing a get to URL:\n{}\n".format(strGetURL))
   try:
     WebRequest = requests.get(strGetURL, timeout=iTimeOut, headers=dictHeader)
-    if iVerbose > 0:
+    if iVerbose > 1:
       LogEntry ("get executed")
   except Exception as err:
     LogEntry ("Issue with get call,. {}".format(err),True)
@@ -257,12 +257,12 @@ def main():
   dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
 
   WebRequest = GetURL(strGetURL,dictHeader)
-  if iVerbose > 0:
+  if iVerbose > 1:
     LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
   if WebRequest.status_code != 200:
     LogEntry("Web response status is not OK",True)
   else:
-    if iVerbose > 0:
+    if iVerbose > 2:
       LogEntry("All is OK")
   strHTML = WebRequest.text
   objSoup = BeautifulSoup(strHTML,features="html.parser")
