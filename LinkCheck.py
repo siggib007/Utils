@@ -20,6 +20,7 @@ import subprocess as proc
 import platform
 import sys
 import subprocess
+import argparse
 try:
   import requests
 except ImportError:
@@ -63,7 +64,7 @@ def SendNotification (strMsg):
       else:
         LogEntry ("response is not a dictionary, here is what came back: {}".format(dictResponse))
       if not bStatus or WebRequest.status_code != 200:
-        LogEntry ("Problme: Status Code:[] API Response OK={}")
+        LogEntry ("Problem: Status Code:[] API Response OK={}")
         LogEntry (WebRequest.text)
       else:
         pass
@@ -144,6 +145,8 @@ def processConf():
         strNotifyChannel = strValue
       if strVarName == "NotifyToken":
         strNotifyToken = strValue
+      if strVarName == "NotifyEnable":
+        strNotifyEnabled = strValue
       if strVarName == "Save":
         strSaveFile = strValue
       if strVarName == "URL":
@@ -157,9 +160,9 @@ def processConf():
       if strVarName == "Mode":
         strType = strValue
 
-  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None:
+  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
     bNotifyEnabled = False
-    LogEntry("Missing configuration items for Slack notifications, turning slack notifications off")
+    LogEntry("Notify turned off or Missing configuration items for notifications, turning notifications off")
   else:
     bNotifyEnabled = True
 
@@ -178,10 +181,10 @@ def main():
   global strPWD
   global iTimeOut
 
-  lstSysArg = sys.argv
-  iSysArgLen = len(lstSysArg)
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
+
+  lstSysArg = sys.argv
 
   strRealPath = os.path.realpath(lstSysArg[0])
   strBaseDir = os.path.dirname(lstSysArg[0])
@@ -198,6 +201,8 @@ def main():
   strScriptName = os.path.basename(lstSysArg[0])
   iLoc = strScriptName.rfind(".")
   strLogFile = strLogDir + "/" + strScriptName[:iLoc] + ISO + ".log"
+  iLoc = lstSysArg[0].rfind(".")
+  strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
   strScriptHost = platform.node().upper()
   print ("This script downloads results from a specified URL, and writes to file."
@@ -208,15 +213,19 @@ def main():
   print ("Logs saved to {}".format(strLogFile))
   objLogOut = open(strLogFile,"w",1)
 
-  if iSysArgLen > 1:
-    strConf_File = lstSysArg[1]
-    LogEntry("Argument provided, setting conf file to: {}".format(strConf_File))
-  else:
-    iLoc = lstSysArg[0].rfind(".")
-    strConf_File = lstSysArg[0][:iLoc] + ".ini"
-    LogEntry("No Argument found, setting conf file to: {}".format(strConf_File))
+  objParser = argparse.ArgumentParser(description="Link checker script")
+  objParser = argparse.ArgumentParser()
+  objParser.add_argument("--config", "-c", type=str, help="Path to configuration file", default=strDefConf)
+  objParser.add_argument("--URL", "-u", type=str, help="Base URL to check")
+  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Not implemented")
+  args = objParser.parse_args()
 
+  strConf_File = args.config
+  LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
+
+  if args.URL is not None:
+    strGetURL = args.URL
 
   if strGetURL is None:
     CleanExit("No URL, can't continue")
@@ -239,7 +248,7 @@ def main():
 
   LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
   if WebRequest.status_code != 200:
-    CleanExit("Web response status is not OK, here is the response:\n{}".format(WebRequest.text))
+    CleanExit("Web response status is not OK, here is the response:\n{}".format(""))
 
 
 if __name__ == '__main__':
