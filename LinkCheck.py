@@ -72,12 +72,6 @@ def SendNotification (strMsg):
   else:
     LogEntry("WebRequest not defined")
 
-def CleanExit(strCause):
-  SendNotification("{} is exiting abnormally on {} {}".format(strScriptName,strScriptHost, strCause))
-
-  objLogOut.close()
-  sys.exit(9)
-
 def LogEntry(strMsg,bAbort=False):
 
   strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
@@ -85,7 +79,8 @@ def LogEntry(strMsg,bAbort=False):
   print (strMsg)
   if bAbort:
     SendNotification("{} on {}: {}".format (strScriptName,strScriptHost,strMsg[:99]))
-    CleanExit("")
+    objLogOut.close()
+    sys.exit(9)
 
 def processConf():
   global strSaveFile
@@ -228,7 +223,7 @@ def main():
     strGetURL = args.URL
 
   if strGetURL is None:
-    CleanExit("No URL, can't continue")
+    LogEntry("No URL, can't continue",True)
 
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
@@ -241,14 +236,17 @@ def main():
     WebRequest = requests.get(strGetURL, timeout=iTimeOut, headers=dictHeader)
     LogEntry ("get executed")
   except Exception as err:
-    CleanExit ("Issue with get call. {}".format(err))
+    LogEntry ("Issue with get call. {}".format(err),True)
 
   if isinstance(WebRequest,requests.models.Response)==False:
-    CleanExit ("response is unknown type")
+    LogEntry ("response is unknown type",True)
 
   LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
   if WebRequest.status_code != 200:
-    CleanExit("Web response status is not OK, here is the response:\n{}".format(""))
+    LogEntry("Web response status is not OK",True)
+  else:
+    LogEntry("All is OK")
+  LogEntry("Done!!")
 
 
 if __name__ == '__main__':
