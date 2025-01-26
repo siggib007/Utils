@@ -266,13 +266,10 @@ def main():
       LogEntry("All is OK")
   strHTML = WebRequest.text
   objSoup = BeautifulSoup(strHTML,features="html.parser")
-  lstLinks = []
   dictLinks = {}
   for objLink in objSoup.findAll("a"):
     strTemp = objLink.get("href")
     if strTemp[:4].lower() == "http" and strTemp != strGetURL:
-      lstLinks.append(strTemp)
-
       WebRequest = GetURL(strTemp, dictHeader)
       iLen = len(strGetURL)
       if strTemp[:iLen] == strGetURL:
@@ -285,7 +282,6 @@ def main():
         dictLinks[strTemp]["dig"] = bDig
       if WebRequest.status_code != 200:
         print("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
-  #print("List of links:\n{}".format(lstLinks))
   LogEntry("Done!!")
 
 
