@@ -22,6 +22,13 @@ import sys
 import subprocess
 import argparse
 try:
+  from bs4 import BeautifulSoup
+except ImportError:
+  subprocess.check_call([sys.executable, "-m", "pip", "install", 'bs4'])
+finally:
+    from bs4 import BeautifulSoup
+
+try:
   import requests
 except ImportError:
   subprocess.check_call([sys.executable, "-m", "pip", "install", 'requests'])
@@ -81,6 +88,20 @@ def LogEntry(strMsg,bAbort=False):
     SendNotification("{} on {}: {}".format (strScriptName,strScriptHost,strMsg[:99]))
     objLogOut.close()
     sys.exit(9)
+
+def GetURL(strGetURL,dictHeader):
+  if iVerbose > 0:
+    LogEntry ("Doing a get to URL:\n{}\n".format(strGetURL))
+  try:
+    WebRequest = requests.get(strGetURL, timeout=iTimeOut, headers=dictHeader)
+    if iVerbose > 0:
+      LogEntry ("get executed")
+  except Exception as err:
+    LogEntry ("Issue with get call,. {}".format(err),True)
+
+  if isinstance(WebRequest,requests.models.Response)==False:
+    LogEntry ("response is unknown type",True)
+  return WebRequest
 
 def processConf():
   global strSaveFile
@@ -175,6 +196,7 @@ def main():
   global strUserName
   global strPWD
   global iTimeOut
+  global iVerbose
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -212,13 +234,15 @@ def main():
   objParser = argparse.ArgumentParser()
   objParser.add_argument("--config", "-c", type=str, help="Path to configuration file", default=strDefConf)
   objParser.add_argument("--URL", "-u", type=str, help="Base URL to check")
-  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Not implemented")
+  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
   args = objParser.parse_args()
 
   strConf_File = args.config
+  iVerbose = args.verbosity
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
+  #LogEntry("Verbosity: {}".format(args.verbosity),True)
   if args.URL is not None:
     strGetURL = args.URL
 
@@ -231,21 +255,29 @@ def main():
   dictHeader["Cache-Control"] = "no-cache"
   dictHeader["Connection"] = "keep-alive"
 
-  LogEntry ("Doing a get to URL:\n{}\n".format(strGetURL))
-  try:
-    WebRequest = requests.get(strGetURL, timeout=iTimeOut, headers=dictHeader)
-    LogEntry ("get executed")
-  except Exception as err:
-    LogEntry ("Issue with get call. {}".format(err),True)
-
-  if isinstance(WebRequest,requests.models.Response)==False:
-    LogEntry ("response is unknown type",True)
-
-  LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
+  WebRequest = GetURL(strGetURL,dictHeader)
+  if iVerbose > 0:
+    LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
   if WebRequest.status_code != 200:
     LogEntry("Web response status is not OK",True)
   else:
-    LogEntry("All is OK")
+    if iVerbose > 0:
+      LogEntry("All is OK")
+  strHTML = WebRequest.text
+  objSoup = BeautifulSoup(strHTML,features="html.parser")
+  lstLinks = []
+  for objLink in objSoup.findAll("a"):
+    strTemp = objLink.get("href")
+    if strTemp[:4].lower() == "http" and strTemp != strGetURL:
+      lstLinks.append(strTemp)
+      WebRequest = GetURL(strTemp, dictHeader)
+      iLen = len(strGetURL)
+      if strTemp[:iLen] == strGetURL:
+        bDig = True
+      else:
+        bDig = False
+      print("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
+  #print("List of links:\n{}".format(lstLinks))
   LogEntry("Done!!")
 
 
