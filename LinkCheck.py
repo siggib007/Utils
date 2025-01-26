@@ -91,7 +91,7 @@ def LogEntry(strMsg,bAbort=False):
 
 def GetURL(strGetURL,dictHeader):
   if iVerbose > 0:
-    LogEntry ("Doing a get to URL:\n{}\n".format(strGetURL))
+    LogEntry ("Doing a get to URL:{}".format(strGetURL))
   try:
     WebRequest = requests.get(strGetURL, timeout=iTimeOut, headers=dictHeader)
     if iVerbose > 1:
