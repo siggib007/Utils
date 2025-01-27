@@ -304,6 +304,7 @@ def main():
   if strSaveFolder == "":
     strSaveFolder = strBaseDir + "Data"
   else:
+    strSaveFolder = strSaveFolder.replace("\\","/")
     if strSaveFolder[-1:] != "/":
       strSaveFolder += "/"
   LogEntry("Save Folder set to {}".format(strSaveFolder))
