@@ -27,7 +27,6 @@ except ImportError:
   subprocess.check_call([sys.executable, "-m", "pip", "install", 'bs4'])
 finally:
     from bs4 import BeautifulSoup
-
 try:
   import requests
 except ImportError:
@@ -115,28 +114,19 @@ def GetURL(strURL,dictHeader):
   return WebRequest
 
 def processConf():
-  global strSaveFile
+  global strSaveFolder
   global strGetURL
-  global strAuth
   global strNotifyURL
   global strNotifyToken
   global strNotifyChannel
   global bNotifyEnabled
-  global strType
-  global strUserName
-  global strPWD
-
 
   strNotifyURL = None
   strNotifyToken = None
   strNotifyChannel = None
   bNotifyEnabled = False
-  strSaveFile = None
+  strSaveFolder = None
   strGetURL = None
-  strAuth = None
-  strType = "text"
-  strUserName = ""
-  strPWD = ""
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -154,7 +144,6 @@ def processConf():
 
   for strLine in strLines:
     strLine = strLine.strip()
-    strFullLine = strLine
     iCommentLoc = strLine.find("#")
     if iCommentLoc > -1:
       strLine = strLine[:iCommentLoc].strip()
@@ -162,10 +151,8 @@ def processConf():
       strLine = strLine.strip()
     if "=" in strLine:
       strConfParts = strLine.split("=")
-      strLineParts = strFullLine.split("=")
       strVarName = strConfParts[0].strip()
       strValue = strConfParts[1].strip()
-      strFullValue = strLineParts[1].strip()
       if strVarName == "NotificationURL":
         strNotifyURL = strValue
       if strVarName == "NotifyChannel":
@@ -174,18 +161,10 @@ def processConf():
         strNotifyToken = strValue
       if strVarName == "NotifyEnable":
         strNotifyEnabled = strValue
-      if strVarName == "Save":
-        strSaveFile = strValue
+      if strVarName == "SaveFolder":
+        strSaveFolder = strValue
       if strVarName == "URL":
         strGetURL = strValue
-      if strVarName == "Auth":
-        strAuth = strValue
-      if strVarName == "UserName":
-        strUserName = strValue
-      if strVarName == "Password":
-        strPWD = strFullValue
-      if strVarName == "Mode":
-        strType = strValue
 
   if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
     bNotifyEnabled = False
@@ -223,6 +202,8 @@ def processPage(strURL,strMainURL):
       strStatus = WebRequest.status_code
     dictLinks[strURL]["dig"] = bDig
     dictLinks[strURL]["code"] = strStatus
+    dictSiteMap[strURL]["code"] = strStatus
+    dictLinks[strURL]["src"] = dictSiteMap[strURL]["src"]
     if strStatus != 200:
       LogEntry("URL:{} Status:{}".format(strURL,strStatus))
   if not bDig:
@@ -247,6 +228,8 @@ def processPage(strURL,strMainURL):
     if strTemp is not None and strTemp[:4].lower() == "http":
       if strTemp not in dictLinks and strTemp not in lstLinks and strTemp not in lstNewLinks:
         lstLinks.append(strTemp)
+        dictSiteMap[strTemp] = {}
+        dictSiteMap[strTemp]["src"] = strURL
         if iVerbose > 2:
           LogEntry("{} added to the list".format(strTemp))
       else:
@@ -264,16 +247,13 @@ def main():
   global objLogOut
   global strScriptName
   global strScriptHost
-  global strSaveFile
-  global strAuth
-  global strType
-  global strUserName
-  global strPWD
+  global strSaveFolder
   global iTimeOut
   global iVerbose
   global dictLinks
   global strGetURL
   global lstNewLinks
+  global dictSiteMap
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -320,6 +300,17 @@ def main():
   processConf()
 
   LogEntry("Verbosity: {}".format(args.verbosity))
+
+  if strSaveFolder == "":
+    strSaveFolder = strBaseDir + "Data"
+  else:
+    if strSaveFolder[-1:] != "/":
+      strSaveFolder += "/"
+  LogEntry("Save Folder set to {}".format(strSaveFolder))
+  if not os.path.exists (strSaveFolder) :
+    os.makedirs(strSaveFolder)
+    print ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
+
   if args.URL is not None:
     strGetURL = args.URL
 
@@ -327,10 +318,14 @@ def main():
     LogEntry("No valid URL, can't continue",True)
 
   dictLinks = {}
+  dictSiteMap = {}
   lstNewLinks = []
 
   lstURLs = strGetURL.split(";")
   for strURL in lstURLs:
+    dictSiteMap[strURL] = {}
+    dictSiteMap[strURL]["src"] = "root"
+
     lstLinks = processPage(strURL,strURL)
     if iVerbose > 0:
       LogEntry("Found {} links. Digging into them".format(len(lstLinks)))
@@ -346,6 +341,12 @@ def main():
       if iVerbose > 0:
         LogEntry("Found {} new links".format(len(lstTemp)))
 
+  strSiteMap = strSaveFolder + "SiteMap.json"
+  strLinksOut = strSaveFolder + "AllLinks.json"
+  with open(strSiteMap, "w") as outfile:
+      json.dump(dictSiteMap, outfile)
+  with open(strLinksOut, "w") as outfile:
+      json.dump(dictLinks, outfile)
 
   LogEntry("Done!!")
 
