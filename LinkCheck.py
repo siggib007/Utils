@@ -198,6 +198,12 @@ def processConf():
 def processPage(strURL,strMainURL):
   global dictLinks
 
+  iLen = len(strMainURL)
+  if strURL[:iLen] == strMainURL:
+    bDig = True
+  else:
+    bDig = False
+
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
   dictHeader["Accept"] = "application/json"
@@ -211,15 +217,27 @@ def processPage(strURL,strMainURL):
   else:
     WebRequest = GetURL(strURL,dictHeader)
     dictLinks[strURL] = {}
-    dictLinks[strURL]["code"] = WebRequest.status_code
+    if WebRequest is None:
+      dictLinks[strURL]["code"] = "Link failure"
+    else:
+      dictLinks[strURL]["code"] = WebRequest.status_code
+    dictLinks[strURL]["dig"] = bDig
     if WebRequest.status_code != 200:
       LogEntry("URL:{} Status:{}".format(strURL,WebRequest.status_code))
+  if not bDig:
+    if iVerbose > 1:
+      LogEntry("{} is not one of our links, not digging deeper".format(strURL))
+    return []
+  else:
+    if iVerbose > 1:
+      LogEntry("{} is one of our links, parsing for links".format(strURL))
 
   if WebRequest is None or WebRequest.status_code != 200:
     strHTML = ""
     LogEntry("Setting HTML string to an empty string")
   else:
     strHTML = WebRequest.text
+
   objSoup = BeautifulSoup(strHTML,features="html.parser")
   if iVerbose > 3:
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
@@ -228,13 +246,11 @@ def processPage(strURL,strMainURL):
     if iVerbose > 3:
       LogEntry(strTemp)
     if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strMainURL:
-      iLen = len(strMainURL)
-      if strTemp[:iLen] == strMainURL:
-        bDig = True
-      else:
-        bDig = False
-      if strTemp not in dictLinks and bDig:
+      if strTemp not in dictLinks and strTemp not in lstLinks:
         lstLinks.append(strTemp)
+        if iVerbose > 2:
+          LogEntry("{} added to the list".format(strTemp))
+
 
   return lstLinks
 
