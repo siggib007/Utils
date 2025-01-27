@@ -205,6 +205,7 @@ def processPage(strURL,strMainURL):
   dictHeader["Connection"] = "keep-alive"
   dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
 
+  lstLinks = []
   WebRequest = GetURL(strURL,dictHeader)
 
   if WebRequest is None or WebRequest.status_code != 200:
@@ -230,8 +231,12 @@ def processPage(strURL,strMainURL):
         dictLinks[strTemp] = {}
         dictLinks[strTemp]["code"] = WebRequest.status_code
         dictLinks[strTemp]["dig"] = bDig
+        if bDig:
+          lstLinks.append(strTemp)
       if WebRequest.status_code != 200:
         LogEntry("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
+
+  return lstLinks
 
 def main():
   global strConf_File
@@ -300,16 +305,26 @@ def main():
     LogEntry("No valid URL, can't continue",True)
 
   dictLinks = {}
+  lstNewLinks = []
 
   lstURLs = strGetURL.split(";")
   for strURL in lstURLs:
-    processPage(strURL,strURL)
+    lstLinks = processPage(strURL,strURL)
     if iVerbose > 0:
-      LogEntry("Digging into next level")
-    for strLink in dictLinks:
-      if dictLinks[strLink]["dig"]:
-        processPage(strLink,strURL)
-        dictLinks[strLink]["Done"] = True
+      LogEntry("Found {} links. Digging into them".format(len(lstLinks)))
+    for strLink in lstLinks:
+      lstTemp = processPage(strLink,strURL)
+      lstNewLinks.extend(lstTemp)
+      if iVerbose > 0:
+        LogEntry("Found {} new links".format(len(lstTemp)))
+    if iVerbose > 0:
+      LogEntry("Working on New list")
+    for strLink in lstNewLinks:
+      lstTemp = processPage(strLink,strURL)
+      #lstNewLinks.extend(lstTemp)
+      if iVerbose > 0:
+        LogEntry("Found {} new links".format(len(lstTemp)))
+
 
   LogEntry("Done!!")
 
