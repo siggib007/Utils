@@ -90,6 +90,8 @@ def LogEntry(strMsg,bAbort=False):
     sys.exit(9)
 
 def GetURL(strGetURL,dictHeader):
+  WebRequest = None
+
   if iVerbose > 0:
     LogEntry ("Doing a get to URL:{}".format(strGetURL))
   try:
@@ -97,10 +99,19 @@ def GetURL(strGetURL,dictHeader):
     if iVerbose > 1:
       LogEntry ("get executed")
   except Exception as err:
-    LogEntry ("Issue with get call,. {}".format(err),True)
+    LogEntry ("Issue with get call,. {}".format(err))
+    return None
 
   if isinstance(WebRequest,requests.models.Response)==False:
-    LogEntry ("response is unknown type",True)
+    LogEntry ("response is unknown type")
+    return None
+  if iVerbose > 1:
+    LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
+  if WebRequest.status_code != 200:
+    LogEntry("Web response status is not OK")
+  else:
+    if iVerbose > 2:
+      LogEntry("All is OK")
   return WebRequest
 
 def processConf():
@@ -197,6 +208,8 @@ def main():
   global strPWD
   global iTimeOut
   global iVerbose
+  global lstLinks
+  global dictLinks
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -242,12 +255,12 @@ def main():
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
-  #LogEntry("Verbosity: {}".format(args.verbosity),True)
+  LogEntry("Verbosity: {}".format(args.verbosity))
   if args.URL is not None:
     strGetURL = args.URL
 
-  if strGetURL is None:
-    LogEntry("No URL, can't continue",True)
+  if strGetURL is None or strGetURL[:4].lower() != "http":
+    LogEntry("No valid URL, can't continue",True)
 
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
@@ -257,19 +270,24 @@ def main():
   dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
 
   WebRequest = GetURL(strGetURL,dictHeader)
-  if iVerbose > 1:
-    LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
-  if WebRequest.status_code != 200:
-    LogEntry("Web response status is not OK",True)
+
+  if WebRequest is None or WebRequest.status_code != 200:
+    strHTML = ""
+    LogEntry("Setting HTML string to an empty string")
   else:
-    if iVerbose > 2:
-      LogEntry("All is OK")
-  strHTML = WebRequest.text
+    strHTML = WebRequest.text
   objSoup = BeautifulSoup(strHTML,features="html.parser")
   dictLinks = {}
+  lstLinks = []
+  if iVerbose > 3:
+    LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
   for objLink in objSoup.findAll("a"):
     strTemp = objLink.get("href")
-    if strTemp[:4].lower() == "http" and strTemp != strGetURL:
+    if iVerbose > 3:
+      LogEntry(strTemp)
+    if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strGetURL:
+      if strTemp not in lstLinks:
+        lstLinks.append(strTemp)
       WebRequest = GetURL(strTemp, dictHeader)
       iLen = len(strGetURL)
       if strTemp[:iLen] == strGetURL:
