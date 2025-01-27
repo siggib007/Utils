@@ -176,6 +176,7 @@ def processConf():
 
 def processPage(strURL,strMainURL):
   global dictLinks
+  global strBadLinks
 
   iLen = len(strMainURL)
   if strURL[:iLen] == strMainURL:
@@ -206,6 +207,7 @@ def processPage(strURL,strMainURL):
     dictLinks[strURL]["src"] = dictSiteMap[strURL]["src"]
     if strStatus != 200:
       LogEntry("URL:{} Status:{}".format(strURL,strStatus))
+      strBadLinks += "Link {} on {} returned status {}".format(strURL,dictSiteMap[strURL]["src"],strStatus)
   if not bDig:
     if iVerbose > 1:
       LogEntry("{} is not one of our links, not digging deeper".format(strURL))
@@ -256,6 +258,9 @@ def main():
   global strGetURL
   global lstNewLinks
   global dictSiteMap
+  global strBadLinks
+
+  strBadLinks = ""
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -363,7 +368,7 @@ def main():
       json.dump(dictSiteMap, outfile)
   with open(strLinksOut, "w") as outfile:
       json.dump(dictLinks, outfile)
-
+  LogEntry("Bad Links:\n{}".format(strBadLinks))
   LogEntry("Done!!")
 
 
