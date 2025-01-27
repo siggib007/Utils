@@ -218,11 +218,12 @@ def processPage(strURL,strMainURL):
     WebRequest = GetURL(strURL,dictHeader)
     dictLinks[strURL] = {}
     if WebRequest is None:
-      dictLinks[strURL]["code"] = "Link failure"
+      strStatus = "Link failure"
     else:
-      dictLinks[strURL]["code"] = WebRequest.status_code
+      strStatus = WebRequest.status_code
     dictLinks[strURL]["dig"] = bDig
-    if WebRequest.status_code != 200:
+    dictLinks[strURL]["code"] = strStatus
+    if strStatus != 200:
       LogEntry("URL:{} Status:{}".format(strURL,WebRequest.status_code))
   if not bDig:
     if iVerbose > 1:
@@ -250,6 +251,12 @@ def processPage(strURL,strMainURL):
         lstLinks.append(strTemp)
         if iVerbose > 2:
           LogEntry("{} added to the list".format(strTemp))
+      else:
+        if iVerbose > 3:
+          LogEntry("Already processed {}".format(strTemp))
+    else:
+      if iVerbose > 3:
+        LogEntry("{} is not a valid link".format(strTemp))
 
 
   return lstLinks
