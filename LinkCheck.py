@@ -347,7 +347,7 @@ def main():
       lstNewLinks2.extend(lstTemp)
       if iVerbose > 0:
         LogEntry("Found {} new links while on new list".format(len(lstTemp)))
-    LogEntry("There are {} links left".format())
+    LogEntry("There are {} links left".format(len(lstNewLinks2)))
 
   strSiteMap = strSaveFolder + "SiteMap.json"
   strLinksOut = strSaveFolder + "AllLinks.json"
