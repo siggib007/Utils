@@ -206,7 +206,14 @@ def processPage(strURL,strMainURL):
   dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
 
   lstLinks = []
-  WebRequest = GetURL(strURL,dictHeader)
+  if strURL in dictLinks:
+    return[]
+  else:
+    WebRequest = GetURL(strURL,dictHeader)
+    dictLinks[strURL] = {}
+    dictLinks[strURL]["code"] = WebRequest.status_code
+    if WebRequest.status_code != 200:
+      LogEntry("URL:{} Status:{}".format(strURL,WebRequest.status_code))
 
   if WebRequest is None or WebRequest.status_code != 200:
     strHTML = ""
@@ -221,20 +228,13 @@ def processPage(strURL,strMainURL):
     if iVerbose > 3:
       LogEntry(strTemp)
     if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strMainURL:
-      WebRequest = GetURL(strTemp, dictHeader)
       iLen = len(strMainURL)
       if strTemp[:iLen] == strMainURL:
         bDig = True
       else:
         bDig = False
-      if strTemp not in dictLinks:
-        dictLinks[strTemp] = {}
-        dictLinks[strTemp]["code"] = WebRequest.status_code
-        dictLinks[strTemp]["dig"] = bDig
-        if bDig:
-          lstLinks.append(strTemp)
-      if WebRequest.status_code != 200:
-        LogEntry("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
+      if strTemp not in dictLinks and bDig:
+        lstLinks.append(strTemp)
 
   return lstLinks
 
@@ -321,7 +321,6 @@ def main():
       LogEntry("Working on New list")
     for strLink in lstNewLinks:
       lstTemp = processPage(strLink,strURL)
-      #lstNewLinks.extend(lstTemp)
       if iVerbose > 0:
         LogEntry("Found {} new links".format(len(lstTemp)))
 
