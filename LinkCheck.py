@@ -353,6 +353,7 @@ def main():
       lstNewLinks2.extend(lstTemp)
       if iVerbose > 0:
         LogEntry("Found {} new links while on new list".format(len(lstTemp)))
+    LogEntry("There are {} links left on list 2".format(len(lstNewLinks)))
     for strLink in lstNewLinks2:
       if iVerbose > 1:
         LogEntry("List2, Working on {}".format(strLink))
@@ -360,7 +361,7 @@ def main():
       lstNewLinks3.extend(lstTemp)
       if iVerbose > 0:
         LogEntry("Found {} new links while on new list2".format(len(lstTemp)))
-    LogEntry("There are {} links left after list 2".format(len(lstNewLinks3)))
+    LogEntry("There are {} links left on list 3".format(len(lstNewLinks3)))
 
   strSiteMap = strSaveFolder + "SiteMap.json"
   strLinksOut = strSaveFolder + "AllLinks.json"
