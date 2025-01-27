@@ -224,7 +224,7 @@ def processPage(strURL,strMainURL):
     dictLinks[strURL]["dig"] = bDig
     dictLinks[strURL]["code"] = strStatus
     if strStatus != 200:
-      LogEntry("URL:{} Status:{}".format(strURL,WebRequest.status_code))
+      LogEntry("URL:{} Status:{}".format(strURL,strStatus))
   if not bDig:
     if iVerbose > 1:
       LogEntry("{} is not one of our links, not digging deeper".format(strURL))
@@ -244,8 +244,6 @@ def processPage(strURL,strMainURL):
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
   for objLink in objSoup.findAll("a"):
     strTemp = objLink.get("href")
-    if iVerbose > 3:
-      LogEntry(strTemp)
     if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strMainURL:
       if strTemp not in dictLinks and strTemp not in lstLinks:
         lstLinks.append(strTemp)
