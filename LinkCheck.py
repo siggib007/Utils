@@ -324,6 +324,7 @@ def main():
   dictSiteMap = {}
   lstNewLinks = []
   lstNewLinks2 = []
+  lstNewLinks3 = []
 
   lstURLs = strGetURL.split(";")
   for strURL in lstURLs:
@@ -347,7 +348,14 @@ def main():
       lstNewLinks2.extend(lstTemp)
       if iVerbose > 0:
         LogEntry("Found {} new links while on new list".format(len(lstTemp)))
-    LogEntry("There are {} links left".format(len(lstNewLinks2)))
+    for strLink in lstNewLinks2:
+      if iVerbose > 1:
+        LogEntry("List2, Working on {}".format(strLink))
+      lstTemp = processPage(strLink,strURL)
+      lstNewLinks3.extend(lstTemp)
+      if iVerbose > 0:
+        LogEntry("Found {} new links while on new list2".format(len(lstTemp)))
+    LogEntry("There are {} links left after list 2".format(len(lstNewLinks3)))
 
   strSiteMap = strSaveFolder + "SiteMap.json"
   strLinksOut = strSaveFolder + "AllLinks.json"
