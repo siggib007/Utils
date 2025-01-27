@@ -304,10 +304,12 @@ def main():
   lstURLs = strGetURL.split(";")
   for strURL in lstURLs:
     processPage(strURL,strURL)
+    if iVerbose > 0:
+      LogEntry("Digging into next level")
     for strLink in dictLinks:
       if dictLinks[strLink]["dig"]:
         processPage(strLink,strURL)
-        dictLinks[strLink]["Done"]=True
+        dictLinks[strLink]["Done"] = True
 
   LogEntry("Done!!")
 
