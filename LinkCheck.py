@@ -227,6 +227,8 @@ def processPage(strURL,strMainURL):
     strTemp = objLink.get("href")
     if strTemp is not None and strTemp[:4].lower() == "http":
       if strTemp not in dictLinks and strTemp not in lstLinks and strTemp not in lstNewLinks:
+        if strTemp[-3:] == "jpg" or strTemp[-3:]:
+          continue
         lstLinks.append(strTemp)
         dictSiteMap[strTemp] = {}
         dictSiteMap[strTemp]["src"] = strURL
