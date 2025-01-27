@@ -244,14 +244,14 @@ def processPage(strURL,strMainURL):
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
   for objLink in objSoup.findAll("a"):
     strTemp = objLink.get("href")
-    if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strMainURL:
-      if strTemp not in dictLinks and strTemp not in lstLinks:
+    if strTemp is not None and strTemp[:4].lower() == "http":
+      if strTemp not in dictLinks and strTemp not in lstLinks and strTemp not in lstNewLinks:
         lstLinks.append(strTemp)
         if iVerbose > 2:
           LogEntry("{} added to the list".format(strTemp))
       else:
         if iVerbose > 3:
-          LogEntry("Already processed {}".format(strTemp))
+          LogEntry("Already seen {}".format(strTemp))
     else:
       if iVerbose > 3:
         LogEntry("{} is not a valid link".format(strTemp))
@@ -273,6 +273,7 @@ def main():
   global iVerbose
   global dictLinks
   global strGetURL
+  global lstNewLinks
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
