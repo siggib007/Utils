@@ -338,6 +338,8 @@ def main():
     if iVerbose > 0:
       LogEntry("Working on New list")
     for strLink in lstNewLinks:
+      if iVerbose > 1:
+        LogEntry("Working on {}".format(strLink))
       lstTemp = processPage(strLink,strURL)
       if iVerbose > 0:
         LogEntry("Found {} new links".format(len(lstTemp)))
