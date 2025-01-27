@@ -89,13 +89,13 @@ def LogEntry(strMsg,bAbort=False):
     objLogOut.close()
     sys.exit(9)
 
-def GetURL(strGetURL,dictHeader):
+def GetURL(strURL,dictHeader):
   WebRequest = None
 
   if iVerbose > 0:
-    LogEntry ("Doing a get to URL:{}".format(strGetURL))
+    LogEntry ("Doing a get to URL:{}".format(strURL))
   try:
-    WebRequest = requests.get(strGetURL, timeout=iTimeOut, headers=dictHeader)
+    WebRequest = requests.get(strURL, timeout=iTimeOut, headers=dictHeader)
     if iVerbose > 1:
       LogEntry ("get executed")
   except Exception as err:
@@ -195,21 +195,58 @@ def processConf():
 
   LogEntry ("Done processing configuration, moving on")
 
+def processPage(strURL,strMainURL):
+  global dictLinks
+
+  dictHeader = {}
+  dictHeader["Content-Type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Cache-Control"] = "no-cache"
+  dictHeader["Connection"] = "keep-alive"
+  dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
+
+  WebRequest = GetURL(strURL,dictHeader)
+
+  if WebRequest is None or WebRequest.status_code != 200:
+    strHTML = ""
+    LogEntry("Setting HTML string to an empty string")
+  else:
+    strHTML = WebRequest.text
+  objSoup = BeautifulSoup(strHTML,features="html.parser")
+  if iVerbose > 3:
+    LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
+  for objLink in objSoup.findAll("a"):
+    strTemp = objLink.get("href")
+    if iVerbose > 3:
+      LogEntry(strTemp)
+    if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strMainURL:
+      WebRequest = GetURL(strTemp, dictHeader)
+      iLen = len(strMainURL)
+      if strTemp[:iLen] == strMainURL:
+        bDig = True
+      else:
+        bDig = False
+      if strTemp not in dictLinks:
+        dictLinks[strTemp] = {}
+        dictLinks[strTemp]["code"] = WebRequest.status_code
+        dictLinks[strTemp]["dig"] = bDig
+      if WebRequest.status_code != 200:
+        LogEntry("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
+
 def main():
   global strConf_File
   global objLogOut
   global strScriptName
   global strScriptHost
   global strSaveFile
-  global strGetURL
   global strAuth
   global strType
   global strUserName
   global strPWD
   global iTimeOut
   global iVerbose
-  global lstLinks
   global dictLinks
+  global strGetURL
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -262,44 +299,16 @@ def main():
   if strGetURL is None or strGetURL[:4].lower() != "http":
     LogEntry("No valid URL, can't continue",True)
 
-  dictHeader = {}
-  dictHeader["Content-Type"] = "application/json"
-  dictHeader["Accept"] = "application/json"
-  dictHeader["Cache-Control"] = "no-cache"
-  dictHeader["Connection"] = "keep-alive"
-  dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:59.0) Gecko/20100101 Firefox/59.0"
-
-  WebRequest = GetURL(strGetURL,dictHeader)
-
-  if WebRequest is None or WebRequest.status_code != 200:
-    strHTML = ""
-    LogEntry("Setting HTML string to an empty string")
-  else:
-    strHTML = WebRequest.text
-  objSoup = BeautifulSoup(strHTML,features="html.parser")
   dictLinks = {}
-  lstLinks = []
-  if iVerbose > 3:
-    LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
-  for objLink in objSoup.findAll("a"):
-    strTemp = objLink.get("href")
-    if iVerbose > 3:
-      LogEntry(strTemp)
-    if strTemp is not None and strTemp[:4].lower() == "http" and strTemp != strGetURL:
-      if strTemp not in lstLinks:
-        lstLinks.append(strTemp)
-      WebRequest = GetURL(strTemp, dictHeader)
-      iLen = len(strGetURL)
-      if strTemp[:iLen] == strGetURL:
-        bDig = True
-      else:
-        bDig = False
-      if strTemp not in dictLinks:
-        dictLinks[strTemp] = {}
-        dictLinks[strTemp]["code"] = WebRequest.status_code
-        dictLinks[strTemp]["dig"] = bDig
-      if WebRequest.status_code != 200:
-        print("URL:{} Status:{} Dig:{}".format(strTemp,WebRequest.status_code,bDig))
+
+  lstURLs = strGetURL.split(";")
+  for strURL in lstURLs:
+    processPage(strURL,strURL)
+    for strLink in dictLinks:
+      if dictLinks[strLink]["dig"]:
+        processPage(strLink,strURL)
+        dictLinks[strLink]["Done"]=True
+
   LogEntry("Done!!")
 
 
