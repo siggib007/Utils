@@ -406,6 +406,11 @@ def main():
   for strURL in lstURLs:
     dictSiteMap[strURL] = {}
     dictSiteMap[strURL]["src"] = "root"
+    try:
+      del dictLinks[strURL]
+    except:
+      if iVerbose > 2:
+        LogEntry("item not in dictlinks")
 
     if iVerbose > 2:
       LogEntry("Starting to work on {}".format(strURL))
