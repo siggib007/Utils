@@ -4,11 +4,12 @@ Author Siggi Bjarnason Copyright 2025
 Website http://supergeek.us
 
 Description:
-This is script to parse links out of a URL and check if they are valid.
+This is script crawls a URL to parse links out and check if they are valid.
 
 Following packages need to be installed as administrator
 pip install requests
 pip install jason
+pip install bs4
 
 '''
 
@@ -120,6 +121,7 @@ def processConf():
   global strNotifyToken
   global strNotifyChannel
   global bNotifyEnabled
+  global strBlockedURLs
 
   strNotifyURL = None
   strNotifyToken = None
@@ -165,6 +167,8 @@ def processConf():
         strSaveFolder = strValue
       if strVarName == "URL":
         strGetURL = strValue
+      if strVarName == "Block":
+        strBlockedURLs = strValue
 
   if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
     bNotifyEnabled = False
@@ -177,6 +181,12 @@ def processConf():
 def processPage(strURL,strMainURL):
   global dictLinks
   global strBadLinks
+
+  for strBlock in lstBlockedURLs:
+    if strBlock in strURL:
+      if iVerbose > 0:
+        LogEntry("Not processing {} because {} is blocked.".format(strURL,strBlock))
+      return []
 
   iLen = len(strMainURL)
   if strURL[:iLen] == strMainURL:
@@ -273,6 +283,7 @@ def main():
   global lstNewLinks
   global dictSiteMap
   global strBadLinks
+  global lstBlockedURLs
 
   strBadLinks = ""
 
@@ -321,6 +332,10 @@ def main():
   processConf()
 
   LogEntry("Verbosity: {}".format(args.verbosity))
+
+  lstBlockedURLs = strBlockedURLs.split(",")
+  if iVerbose > 3:
+    LogEntry("Not checking the following due to blocklist: {}".format(lstBlockedURLs))
 
   if strSaveFolder == "":
     strSaveFolder = strBaseDir + "Data"
