@@ -16,7 +16,7 @@ pip install jason
 import os
 import time
 import urllib.parse as urlparse
-import subprocess as proc
+import subprocess
 import platform
 import sys
 import subprocess
@@ -341,11 +341,8 @@ def main():
 
   dictLinks = {}
   dictSiteMap = {}
-  lstNewLinks = []
-  lstNewLinks2 = []
-  lstNewLinks3 = []
 
-  lstURLs = strGetURL.split(";")
+  lstURLs = strGetURL.split(",")
   for strURL in lstURLs:
     dictSiteMap[strURL] = {}
     dictSiteMap[strURL]["src"] = "root"
