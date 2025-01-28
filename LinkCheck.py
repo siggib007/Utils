@@ -42,21 +42,43 @@ finally:
     import json
 # End imports
 
+def FetchEnv (strEnvName):
+  if os.getenv(strEnvName) != "" and os.getenv(strEnvName) is not None:
+    return os.getenv(strEnvName)
+  else:
+    return None
+
 def SendNotification (strMsg):
+  global strNotifyURL
+  global strNotifyToken
+  global strNotifyChannel
+  global strNotifyEnabled
+  global bNotifyEnabled
+
   if not bNotifyEnabled:
     return "notifications not enabled"
-  dictNotify = {}
-  dictNotify["token"] = strNotifyToken
-  dictNotify["channel"] = strNotifyChannel
-  dictNotify["text"]=strMsg[:199]
-  strNotifyParams = urlparse.urlencode(dictNotify)
-  strURL = strNotifyURL + "?" + strNotifyParams
+  iTimeOut = 20  # Connection timeout in seconds
+  iMaxMSGlen = 19999  # Truncate the slack message to this length
+
+  strNotifyURL = strNotifyURL
+  dictHeader = {}
+  dictHeader["Content-Type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Cache-Control"] = "no-cache"
+  dictHeader["Connection"] = "keep-alive"
+  dictHeader["Authorization"] = "Bearer " + strNotifyToken
+
+  dictPayload = {}
+  dictPayload["channel"] = strNotifyChannel
+  dictPayload["text"] = strMsg[:iMaxMSGlen]
+
   bStatus = False
   WebRequest = None
   try:
-    WebRequest = requests.get(strURL,timeout=iTimeOut)
+    WebRequest = requests.post(
+      strNotifyURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader)
   except Exception as err:
-    LogEntry ("Issue with sending notifications. {}".format(err))
+    return "FAIL. Issue with sending notifications. {}".format(err)
   if WebRequest is not None:
     if isinstance(WebRequest,requests.models.Response)==False:
       LogEntry ("response is unknown type")
@@ -65,17 +87,17 @@ def SendNotification (strMsg):
       if isinstance(dictResponse,dict):
         if "ok" in dictResponse:
           bStatus = dictResponse["ok"]
-          LogEntry ("Successfully sent slack notification\n{} ".format(strMsg))
+          if bStatus:
+            LogEntry ("Successfully sent slack notification\n{} ".format(strMsg))
+          else:
+            LogEntry ("Failed to send slack notification")
         else:
           LogEntry ("Slack notification response: {}".format(dictResponse))
       else:
         LogEntry ("response is not a dictionary, here is what came back: {}".format(dictResponse))
       if not bStatus or WebRequest.status_code != 200:
-        LogEntry ("Problem: Status Code:[] API Response OK={}")
+        LogEntry ("Problem: Status Code:{} API Response OK={}".format(WebRequest.status_code,bStatus))
         LogEntry (WebRequest.text)
-      else:
-        pass
-        # LogEntry ("WebRequest status: {}, bStatus: {}".format(WebRequest.status_code,bStatus))
   else:
     LogEntry("WebRequest not defined")
 
@@ -85,7 +107,7 @@ def LogEntry(strMsg,bAbort=False):
   objLogOut.write("{0} : {1}\n".format(strTimeStamp,strMsg))
   print (strMsg)
   if bAbort:
-    SendNotification("{} on {}: {}".format (strScriptName,strScriptHost,strMsg[:99]))
+    SendNotification("{} on {} aborting: {}".format (strScriptName,strScriptHost,strMsg[:99]))
     objLogOut.close()
     sys.exit(9)
 
@@ -120,13 +142,12 @@ def processConf():
   global strNotifyURL
   global strNotifyToken
   global strNotifyChannel
-  global bNotifyEnabled
+  global strNotifyEnabled
   global strBlockedURLs
 
   strNotifyURL = None
   strNotifyToken = None
   strNotifyChannel = None
-  bNotifyEnabled = False
   strSaveFolder = None
   strGetURL = None
 
@@ -169,12 +190,6 @@ def processConf():
         strGetURL = strValue
       if strVarName == "Block":
         strBlockedURLs = strValue
-
-  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
-    bNotifyEnabled = False
-    LogEntry("Notify turned off or Missing configuration items for notifications, turning notifications off")
-  else:
-    bNotifyEnabled = True
 
   LogEntry ("Done processing configuration, moving on")
 
@@ -284,6 +299,11 @@ def main():
   global dictSiteMap
   global strBadLinks
   global lstBlockedURLs
+  global strNotifyURL
+  global strNotifyToken
+  global strNotifyChannel
+  global strNotifyEnabled
+  global bNotifyEnabled
 
   strBadLinks = ""
 
@@ -331,6 +351,29 @@ def main():
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
+  if FetchEnv("NOTIFYCHANNEL") is not None:
+    strNotifyChannel = FetchEnv("NOTIFYCHANNEL")
+  if strNotifyChannel == "":
+      strNotifyChannel = None
+  if FetchEnv("NOTIFYTOKEN") is not None:
+    strNotifyToken = FetchEnv("NOTIFYTOKEN")
+  if strNotifyToken == "":
+      strNotifyToken = None
+  if FetchEnv("NOTIFYURL") is not None:
+    strNotifyURL = FetchEnv("NOTIFYURL")
+  if strNotifyURL == "":
+      strNotifyURL = None
+  if FetchEnv("NOTIFYENABLE") is not None:
+    strNotifyEnabled = FetchEnv("NOTIFYENABLE")
+
+
+  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
+    bNotifyEnabled = False
+    LogEntry("Notify turned off or Missing configuration items for notifications, turning notifications off")
+  else:
+    bNotifyEnabled = True
+
+
   LogEntry("Verbosity: {}".format(args.verbosity))
 
   lstBlockedURLs = strBlockedURLs.split(",")
@@ -371,7 +414,7 @@ def main():
       json.dump(dictSiteMap, outfile)
   with open(strLinksOut, "w") as outfile:
       json.dump(dictLinks, outfile)
-  LogEntry("Bad Links:\n{}".format(strBadLinks))
+  SendNotification("{} on {}: Bad Links:\n{}".format(strScriptName,strScriptHost,strBadLinks))
   LogEntry("Done!!")
 
 

@@ -1,0 +1,13 @@
+# This is a configuration file for downloader Scripts
+# Created 28 jan 2025 by Siggi Bjarnason
+
+#Various config items
+SaveFolder=c:\temp
+URL=https://oruggt.net/,https://oruggtnet.is
+Block=twitter.com,x.com,localhost
+
+# Configuration for Slack notifications. Env Variables overwrite this
+NotificationURL=https://slack.com/api/chat.postMessage
+NotifyChannel=redacted
+NotifyToken=redacted
+NotifyEnable=False
