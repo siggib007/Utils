@@ -105,7 +105,8 @@ def LogEntry(strMsg,bAbort=False):
 
   strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
   objLogOut.write("{0} : {1}\n".format(strTimeStamp,strMsg))
-  print (strMsg)
+  if not bQuiet:
+    print (strMsg)
   if bAbort:
     SendNotification("{} on {} aborting: {}".format (strScriptName,strScriptHost,strMsg[:99]))
     objLogOut.close()
@@ -306,6 +307,7 @@ def main():
   global strNotifyChannel
   global strNotifyEnabled
   global bNotifyEnabled
+  global bQuiet
 
   strBadLinks = ""
 
@@ -322,31 +324,36 @@ def main():
   strLogDir  = strBaseDir + "Logs"
   strVersion = "{0}.{1}.{2}".format(sys.version_info[0],sys.version_info[1],sys.version_info[2])
 
-  if not os.path.exists (strLogDir) :
-    os.makedirs(strLogDir)
-    print ("\nPath '{0}' for log file didn't exists, so I create it!\n".format(strLogDir))
-
   strScriptName = os.path.basename(lstSysArg[0])
   iLoc = strScriptName.rfind(".")
   strLogFile = strLogDir + "/" + strScriptName[:iLoc] + ISO + ".log"
   iLoc = lstSysArg[0].rfind(".")
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
-  strScriptHost = platform.node().upper()
-  print ("This script downloads results from a specified URL, and writes to file."
-    "\nThis is running under Python Version {}".format(strVersion))
-  print ("Running from: {}".format(strRealPath))
-  now = time.asctime()
-  print ("The time now is {}".format(now))
-  print ("Logs saved to {}".format(strLogFile))
-  objLogOut = open(strLogFile,"w",1)
-
   objParser = argparse.ArgumentParser(description="Link checker script")
   objParser = argparse.ArgumentParser()
   objParser.add_argument("--config", "-c", type=str, help="Path to configuration file", default=strDefConf)
   objParser.add_argument("--URL", "-u", type=str, help="Base URL to check")
+  objParser.add_argument("-q", "--quiet", action="store_true", help="Suppress output to screeen regardless of verbosity")
   objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
   args = objParser.parse_args()
+  bQuiet = args.quiet
+
+  if not os.path.exists (strLogDir) :
+    os.makedirs(strLogDir)
+    if not bQuiet:
+      print ("\nPath '{0}' for log file didn't exists, so I create it!\n".format(strLogDir))
+
+  strScriptHost = platform.node().upper()
+  if not bQuiet:
+    print ("This script crawls specified URLs and tests all links found."
+    "\nThis is running under Python Version {}".format(strVersion))
+    print ("Running from: {}".format(strRealPath))
+    now = time.asctime()
+    print ("The time now is {}".format(now))
+    print ("Logs saved to {}".format(strLogFile))
+
+  objLogOut = open(strLogFile,"w",1)
 
   strConf_File = args.config
   iVerbose = args.verbosity
@@ -391,7 +398,7 @@ def main():
   LogEntry("Save Folder set to {}".format(strSaveFolder))
   if not os.path.exists (strSaveFolder) :
     os.makedirs(strSaveFolder)
-    print ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
+    LogEntry ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
 
   if args.URL is not None:
     strGetURL = args.URL
