@@ -228,7 +228,7 @@ def processPage(strURL,strMainURL):
   for objLink in objSoup.findAll("a"):
     strTemp = objLink.get("href")
     if strTemp is not None and strTemp[:4].lower() == "http":
-      if strTemp not in dictLinks and strTemp not in lstLinks and strTemp not in lstNewLinks:
+      if strTemp not in dictSiteMap: # dictLinks and strTemp not in lstLinks and strTemp not in lstNewLinks:
         if strTemp[-4:] == ".jpg" or strTemp[-4:] == ".png":
           continue
         lstLinks.append(strTemp)
@@ -242,8 +242,6 @@ def processPage(strURL,strMainURL):
     else:
       if iVerbose > 3:
         LogEntry("{} is not a valid link".format(strTemp))
-
-
   return lstLinks
 
 def main():
