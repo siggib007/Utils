@@ -401,10 +401,14 @@ def main():
   dictSiteMap = {}
 
   lstURLs = strGetURL.split(",")
+  if iVerbose > 2:
+    LogEntry("lstURL: {}".format(lstURLs))
   for strURL in lstURLs:
     dictSiteMap[strURL] = {}
     dictSiteMap[strURL]["src"] = "root"
 
+    if iVerbose > 2:
+      LogEntry("Starting to work on {}".format(strURL))
     lstLinks = processPage(strURL,strURL)
     FetchLinks(lstLinks,strURL)
 
