@@ -218,6 +218,8 @@ def processPage(strURL,strMainURL):
 
   lstLinks = []
   if strURL in dictLinks:
+    if iVerbose > 2:
+      LogEntry("{} has already been processessed".format(strURL))
     return[]
   else:
     WebRequest = GetURL(strURL,dictHeader)
