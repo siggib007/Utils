@@ -207,7 +207,7 @@ def processPage(strURL,strMainURL):
     dictLinks[strURL]["src"] = dictSiteMap[strURL]["src"]
     if strStatus != 200:
       LogEntry("URL:{} Status:{}".format(strURL,strStatus))
-      strBadLinks += "Link {} on {} returned status {}".format(strURL,dictSiteMap[strURL]["src"],strStatus)
+      strBadLinks += "Link {} on {} returned status {}\n".format(strURL,dictSiteMap[strURL]["src"],strStatus)
   if not bDig:
     if iVerbose > 1:
       LogEntry("{} is not one of our links, not digging deeper".format(strURL))
@@ -243,6 +243,22 @@ def processPage(strURL,strMainURL):
       if iVerbose > 3:
         LogEntry("{} is not a valid link".format(strTemp))
   return lstLinks
+
+def FetchLinks(lstLinks,strURL):
+  lstNewLinks = []
+
+  if iVerbose > 1:
+    LogEntry("Got {} links. Digging into them".format(len(lstLinks)))
+  for strLink in lstLinks:
+    lstTemp = processPage(strLink,strURL)
+    lstNewLinks.extend(lstTemp)
+    if iVerbose > 1:
+      LogEntry("Found {} new links".format(len(lstTemp)))
+  iListLen = len(lstNewLinks)
+  if iVerbose > 1:
+    LogEntry("Found {} new and unseen links".format(len(lstNewLinks)))
+  if iListLen > 0:
+    FetchLinks(lstNewLinks,strURL)
 
 def main():
   global strConf_File
@@ -335,31 +351,7 @@ def main():
     dictSiteMap[strURL]["src"] = "root"
 
     lstLinks = processPage(strURL,strURL)
-    if iVerbose > 0:
-      LogEntry("Found {} links. Digging into them".format(len(lstLinks)))
-    for strLink in lstLinks:
-      lstTemp = processPage(strLink,strURL)
-      lstNewLinks.extend(lstTemp)
-      if iVerbose > 0:
-        LogEntry("Found {} new links".format(len(lstTemp)))
-    if iVerbose > 0:
-      LogEntry("Working on New list")
-    for strLink in lstNewLinks:
-      if iVerbose > 1:
-        LogEntry("Working on {}".format(strLink))
-      lstTemp = processPage(strLink,strURL)
-      lstNewLinks2.extend(lstTemp)
-      if iVerbose > 0:
-        LogEntry("Found {} new links while on new list".format(len(lstTemp)))
-    LogEntry("There are {} links left on list 2".format(len(lstNewLinks)))
-    for strLink in lstNewLinks2:
-      if iVerbose > 1:
-        LogEntry("List2, Working on {}".format(strLink))
-      lstTemp = processPage(strLink,strURL)
-      lstNewLinks3.extend(lstTemp)
-      if iVerbose > 0:
-        LogEntry("Found {} new links while on new list2".format(len(lstTemp)))
-    LogEntry("There are {} links left on list 3".format(len(lstNewLinks3)))
+    FetchLinks(lstLinks,strURL)
 
   strSiteMap = strSaveFolder + "SiteMap.json"
   strLinksOut = strSaveFolder + "AllLinks.json"
