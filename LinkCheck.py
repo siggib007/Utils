@@ -447,7 +447,10 @@ def main():
       json.dump(dictSiteMap, outfile)
   with open(strLinksOut, "w") as outfile:
       json.dump(dictLinks, outfile)
-  SendNotification("{} on {}: Bad Links:\n{}".format(strScriptName,strScriptHost,strBadLinks))
+  if bNotifyEnabled:
+    SendNotification("{} on {}: Bad Links:\n{}".format(strScriptName,strScriptHost,strBadLinks))
+  else:
+    LogEntry("{} on {}: Bad Links:\n{}".format(strScriptName,strScriptHost,strBadLinks))
   LogEntry("Done!!")
 
 
