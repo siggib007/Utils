@@ -357,7 +357,7 @@ def main():
     print ("The time now is {}".format(now))
     print ("Logs saved to {}".format(strLogFile))
 
-  objLogOut = open(strLogFile,"w",1)
+  objLogOut = open(strLogFile,"w", encoding='utf8')
 
   strConf_File = args.config
   iVerbose = args.verbosity
