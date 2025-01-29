@@ -194,7 +194,7 @@ def processConf():
 
   LogEntry ("Done processing configuration, moving on")
 
-def processPage(strURL,strMainURL):
+def processPage(strURL):
   global dictLinks
   global strBadLinks
 
@@ -204,11 +204,12 @@ def processPage(strURL,strMainURL):
         LogEntry("Not processing {} because {} is blocked.".format(strURL,strBlock))
       return []
 
-  iLen = len(strMainURL)
-  if strURL[:iLen] == strMainURL:
-    bDig = True
-  else:
-    bDig = False
+  bDig = False
+  for strMainURL in lstURLs:
+    iLen = len(strMainURL)
+    if strURL[:iLen] == strMainURL:
+      bDig = True
+
 
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
@@ -278,7 +279,7 @@ def FetchLinks(lstLinks,strURL):
   if iVerbose > 1:
     LogEntry("Got {} links. Digging into them".format(len(lstLinks)))
   for strLink in lstLinks:
-    lstTemp = processPage(strLink,strURL)
+    lstTemp = processPage(strLink)
     lstNewLinks.extend(lstTemp)
     if iVerbose > 1:
       LogEntry("Found {} new links".format(len(lstTemp)))
@@ -286,7 +287,7 @@ def FetchLinks(lstLinks,strURL):
   if iVerbose > 1:
     LogEntry("Found {} new and unseen links".format(len(lstNewLinks)))
   if iListLen > 0:
-    FetchLinks(lstNewLinks,strURL)
+    FetchLinks(lstNewLinks)
 
 def main():
   global strConf_File
@@ -308,6 +309,7 @@ def main():
   global strNotifyEnabled
   global bNotifyEnabled
   global bQuiet
+  global lstURLs
 
   strBadLinks = ""
 
@@ -417,13 +419,15 @@ def main():
     dictSiteMap[strURL]["src"] = "root"
     try:
       del dictLinks[strURL]
+      if iVerbose > 2:
+        LogEntry("item deleted from dictlinks")
     except:
       if iVerbose > 2:
         LogEntry("item not in dictlinks")
 
     if iVerbose > 2:
       LogEntry("Starting to work on {}".format(strURL))
-    lstLinks = processPage(strURL,strURL)
+    lstLinks = processPage(strURL)
     FetchLinks(lstLinks,strURL)
 
   strSiteMap = strSaveFolder + "SiteMap.json"
