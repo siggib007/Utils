@@ -149,16 +149,14 @@ def processConf():
   strNotifyURL = None
   strNotifyToken = None
   strNotifyChannel = None
-  strSaveFolder = None
+  strSaveFolder = ""
   strGetURL = None
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
   else:
-    LogEntry ("Can't find configuration file {},"
-      " make sure you specified it correctly or"
-      " it is named after this script and in the same"
-      " directory as this script".format(strConf_File),True)
+    LogEntry ("Can't find configuration file {}".format(strConf_File))
+    return
 
   strLine = "  "
   LogEntry ("Reading in configuration")
@@ -287,7 +285,7 @@ def FetchLinks(lstLinks,strURL):
   if iVerbose > 1:
     LogEntry("Found {} new and unseen links".format(len(lstNewLinks)))
   if iListLen > 0:
-    FetchLinks(lstNewLinks)
+    FetchLinks(lstNewLinks,strURL)
 
 def main():
   global strConf_File
@@ -310,8 +308,11 @@ def main():
   global bNotifyEnabled
   global bQuiet
   global lstURLs
+  global strBlockedURLs
 
   strBadLinks = ""
+  bNotifyEnabled = False
+  strBlockedURLs = ""
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -332,11 +333,12 @@ def main():
   iLoc = lstSysArg[0].rfind(".")
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
-  objParser = argparse.ArgumentParser(description="Link checker script")
-  objParser = argparse.ArgumentParser()
-  objParser.add_argument("--config", "-c", type=str, help="Path to configuration file", default=strDefConf)
-  objParser.add_argument("--URL", "-u", type=str, help="Base URL to check")
-  objParser.add_argument("-q", "--quiet", action="store_true", help="Suppress output to screeen regardless of verbosity")
+  objParser = argparse.ArgumentParser(description="Script to crawl a set of URLs, looking for links. Validates they're 200 OK")
+  objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
+  objParser.add_argument("-u", "--URL", type=str, help="Comma seperate list of base URLs to check")
+  objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
+  objParser.add_argument("-b", "--block", type=str, help="Comma seperate list of URLs not to check, all pages under each URL is ignored")
+  objParser.add_argument("-q", "--quiet", action="store_true", help="Suppress output to screeen regardless of verbosity, only log to file")
   objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
   args = objParser.parse_args()
   bQuiet = args.quiet
@@ -387,10 +389,17 @@ def main():
 
   LogEntry("Verbosity: {}".format(args.verbosity))
 
+  if args.block is not None:
+    strBlockedURLs = args.block
   lstBlockedURLs = strBlockedURLs.split(",")
   if iVerbose > 3:
-    LogEntry("Not checking the following due to blocklist: {}".format(lstBlockedURLs))
+    if len(lstBlockedURLs) == 0 or lstBlockedURLs[0] == "":
+      LogEntry("No Blocklist")
+    else:
+      LogEntry("Not checking the following due to blocklist: {}".format(lstBlockedURLs))
 
+  if args.out is not None:
+    strSaveFolder = args.out
   if strSaveFolder == "":
     strSaveFolder = strBaseDir + "Data"
   else:
@@ -404,7 +413,8 @@ def main():
 
   if args.URL is not None:
     strGetURL = args.URL
-
+  if iVerbose > 1:
+    LogEntry("GetURL: {}".format(strGetURL))
   if strGetURL is None or strGetURL[:4].lower() != "http":
     LogEntry("No valid URL, can't continue",True)
 
@@ -414,6 +424,7 @@ def main():
   lstURLs = strGetURL.split(",")
   if iVerbose > 2:
     LogEntry("lstURL: {}".format(lstURLs))
+
   for strURL in lstURLs:
     dictSiteMap[strURL] = {}
     dictSiteMap[strURL]["src"] = "root"

@@ -1,7 +1,7 @@
 # This is a configuration file for downloader Scripts
 # Created 28 jan 2025 by Siggi Bjarnason
 
-#Various config items
+#Various config items, overwritten by cmd parameters
 SaveFolder=c:\temp
 URL=https://oruggt.net/,https://oruggtnet.is
 Block=twitter.com,x.com,localhost
