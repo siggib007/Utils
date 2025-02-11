@@ -232,7 +232,7 @@ def processPage(strURL):
     dictLinks[strURL]["code"] = strStatus
     dictSiteMap[strURL]["code"] = strStatus
     dictLinks[strURL]["src"] = dictSiteMap[strURL]["src"]
-    if strStatus != 200:
+    if strStatus != 200 and strStatus != 403:
       LogEntry("URL:{} Status:{}".format(strURL,strStatus))
       strBadLinks += "Link {} on {} returned status {}\n".format(strURL,dictSiteMap[strURL]["src"],strStatus)
   if not bDig:
