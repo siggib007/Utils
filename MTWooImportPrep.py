@@ -667,6 +667,9 @@ def main():
     dictOut = {}
   objFileIn.close()
   lstFieldNames = lstOut[0].keys() if lstOut else []
+  for objRow in lstOut:
+    if len(objRow.keys()) > len(lstFieldNames):
+      lstFieldNames = objRow.keys()
   strOutFile = strSaveFolder + "MikroTikProducts.json"
   objFileOut = GetFileHandle(strOutFile, "w")
   objFileOut.write(json.dumps(lstOut, indent=2))
