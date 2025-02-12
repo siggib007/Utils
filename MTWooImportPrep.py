@@ -1,10 +1,9 @@
 '''
-Link testing script
+Script that reads in a csv with MikroTik products and prepares them for import into WooCommerce
+Fetches additional data from include URL
+
 Author Siggi Bjarnason Copyright 2025
 Website http://supergeek.us
-
-Description:
-This is script crawls a URL to parse links out and check if they are valid.
 
 Following packages need to be installed as administrator
 pip install requests
@@ -40,7 +39,59 @@ except ImportError:
   subprocess.check_call([sys.executable, "-m", "pip", "install", 'json'])
 finally:
     import json
+
+try:
+  import tkinter as tk
+  from tkinter import filedialog
+  btKinterOK = True
+except:
+  print("Failed to load tkinter, CLI only mode.")
+  btKinterOK = False
 # End imports
+
+def getInput(strPrompt):
+  if sys.version_info[0] > 2 :
+    return input(strPrompt)
+  else:
+    print("please upgrade to python 3")
+    sys.exit(5)
+
+def GetFileHandle(strFileName, strperm):
+    """
+    This wraps error handling around standard file open function
+    Parameters:
+      strFileName: Simple string with filename to be opened
+      strperm: single character string, usually w or r to indicate read vs write.
+      other options such as "a" and "x" are valid too.
+    Returns:
+      File Handle object
+    """
+    dictModes = {}
+    dictModes["w"] = "writing"
+    dictModes["r"] = "reading"
+    dictModes["a"] = "appending"
+    dictModes["x"] = "opening"
+    dictModes["wb"] = "binary write"
+
+    cMode = strperm[:2].lower().strip()
+
+    try:
+        if len(strperm) > 1:
+          objFileHndl = open(strFileName, strperm)
+        else:
+          objFileHndl = open(strFileName, strperm, encoding='utf8')
+        return objFileHndl
+    except PermissionError:
+        LogEntry("unable to open output file {} for {}, "
+              "permission denied.".format(strFileName, dictModes[cMode]))
+        return ("Permission denied")
+    except FileNotFoundError:
+        LogEntry("unable to open output file {} for {}, "
+              "Issue with the path".format(strFileName, dictModes[cMode]))
+        return ("FileNotFound")
+    except Exception as err:
+      LogEntry("Unknown error: {}".format(err))
+      return ("unknowErr")
 
 def FetchEnv (strEnvName):
   if os.getenv(strEnvName) != "" and os.getenv(strEnvName) is not None:
@@ -191,3 +242,152 @@ def processConf():
         strBlockedURLs = strValue
 
   LogEntry ("Done processing configuration, moving on")
+
+def main():
+  global strConf_File
+  global objLogOut
+  global strScriptName
+  global strScriptHost
+  global strSaveFolder
+  global iTimeOut
+  global iVerbose
+  global dictLinks
+  global strGetURL
+  global lstNewLinks
+  global dictSiteMap
+  global lstBlockedURLs
+  global strNotifyURL
+  global strNotifyToken
+  global strNotifyChannel
+  global strNotifyEnabled
+  global bNotifyEnabled
+  global bQuiet
+  global lstURLs
+
+  bNotifyEnabled = False
+
+  iTimeOut = 120
+  ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
+  csvDelim = ""
+
+  lstSysArg = sys.argv
+
+  strRealPath = os.path.realpath(lstSysArg[0])
+  strBaseDir = os.path.dirname(lstSysArg[0])
+  if strBaseDir != "":
+    if strBaseDir[-1:] != "/":
+      strBaseDir += "/"
+  strLogDir  = strBaseDir + "Logs"
+  strVersion = "{0}.{1}.{2}".format(sys.version_info[0],sys.version_info[1],sys.version_info[2])
+
+  strScriptName = os.path.basename(lstSysArg[0])
+  iLoc = strScriptName.rfind(".")
+  strLogFile = strLogDir + "/" + strScriptName[:iLoc] + ISO + ".log"
+  iLoc = lstSysArg[0].rfind(".")
+  strDefConf = lstSysArg[0][:iLoc] + ".ini"
+
+  objParser = argparse.ArgumentParser(description="Script to create WooCommerce import files from MikroTik product pages")
+  objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
+  objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
+  objParser.add_argument("-i", "--input", type=str, help="Path to Mikrotik input file")
+  objParser.add_argument("-q", "--quiet", action="store_true", help="Suppress output to screeen regardless of verbosity, only log to file")
+  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
+  args = objParser.parse_args()
+  bQuiet = args.quiet
+
+  if not os.path.exists (strLogDir) :
+    os.makedirs(strLogDir)
+    if not bQuiet:
+      print ("\nPath '{0}' for log file didn't exists, so I create it!\n".format(strLogDir))
+
+  strScriptHost = platform.node().upper()
+  if not bQuiet:
+    print ("This script prepares an import script for Woocommerce for MikroTik Products."
+    "\nThis is running under Python Version {}".format(strVersion))
+    print ("Running from: {}".format(strRealPath))
+    now = time.asctime()
+    print ("The time now is {}".format(now))
+    print ("Logs saved to {}".format(strLogFile))
+
+  objLogOut = open(strLogFile,"w", encoding='utf8')
+
+  strConf_File = args.config
+  iVerbose = args.verbosity
+  LogEntry("conf file set to: {}".format(strConf_File))
+  processConf()
+
+  if FetchEnv("NOTIFYCHANNEL") is not None:
+    strNotifyChannel = FetchEnv("NOTIFYCHANNEL")
+  if strNotifyChannel == "":
+      strNotifyChannel = None
+  if FetchEnv("NOTIFYTOKEN") is not None:
+    strNotifyToken = FetchEnv("NOTIFYTOKEN")
+  if strNotifyToken == "":
+      strNotifyToken = None
+  if FetchEnv("NOTIFYURL") is not None:
+    strNotifyURL = FetchEnv("NOTIFYURL")
+  if strNotifyURL == "":
+      strNotifyURL = None
+  if FetchEnv("NOTIFYENABLE") is not None:
+    strNotifyEnabled = FetchEnv("NOTIFYENABLE")
+
+  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
+    bNotifyEnabled = False
+    LogEntry("Notify turned off or Missing configuration items for notifications, turning notifications off")
+  else:
+    bNotifyEnabled = True
+
+  LogEntry("Verbosity: {}".format(iVerbose))
+
+  if args.input is None:
+    strFilein = ""
+  else:
+    strFilein = args.input
+
+  if strFilein == "":
+    if btKinterOK:
+      print("File name to be processed is missing. Opening up a file open dialog box, please select the file you wish to process.")
+      root = tk.Tk()
+      root.withdraw()
+      strFilein = filedialog.askopenfilename (title = "Select the WP Export file",filetypes = (("CSV files","*.csv"),("all files","*.*")))
+    else:
+      strFilein = getInput("Please provide full path and filename for the MikroTik product file to be processed: ")
+  if strFilein == "":
+    print("No filename provided unable to continue")
+    sys.exit(9)
+
+  if os.path.isfile(strFilein):
+    print("OK found {}".format(strFilein))
+  else:
+    print("Can't find MikroTik product file {}".format(strFilein))
+    sys.exit(4)
+  iLoc = strFilein.rfind(".")
+  strFileExt = strFilein[iLoc+1:]
+  strInDir = os.path.dirname(strFilein)
+
+  if args.out is not None:
+    strSaveFolder = args.out
+  if strSaveFolder == "":
+    strSaveFolder = strInDir
+  else:
+    strSaveFolder = strSaveFolder.replace("\\","/")
+    if strSaveFolder[-1:] != "/":
+      strSaveFolder += "/"
+  LogEntry("Save Folder set to {}".format(strSaveFolder))
+  if not os.path.exists (strSaveFolder) :
+    os.makedirs(strSaveFolder)
+    LogEntry ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
+
+  if strFileExt.lower() == "csv":
+    objFileIn = GetFileHandle (strFilein, "r")
+  else:
+    LogEntry("only able to process csv files. Unable to process {} files".format(strFileExt))
+    sys.exit(5)
+    objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
+    for dictTemp in objReader:
+        LogEntry("Working on {} - {} - jump: {}".format(
+            dictTemp["Label"], dictTemp["Address"], dictTemp["Jump"]), 4)
+
+
+if __name__ == '__main__':
+  main()
