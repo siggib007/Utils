@@ -21,6 +21,7 @@ import platform
 import sys
 import subprocess
 import argparse
+import csv
 try:
   from bs4 import BeautifulSoup
 except ImportError:
@@ -268,7 +269,7 @@ def main():
 
   iTimeOut = 120
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
-  csvDelim = ""
+  csvDelim = ","
 
   lstSysArg = sys.argv
 
@@ -383,10 +384,11 @@ def main():
   else:
     LogEntry("only able to process csv files. Unable to process {} files".format(strFileExt))
     sys.exit(5)
-    objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
-    for dictTemp in objReader:
-        LogEntry("Working on {} - {} - jump: {}".format(
-            dictTemp["Label"], dictTemp["Address"], dictTemp["Jump"]), 4)
+
+  objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
+  for dictTemp in objReader:
+      LogEntry("Working on {} - {} - jump: {}".format(
+          dictTemp["Label"], dictTemp["Address"], dictTemp["Jump"]), 4)
 
 
 if __name__ == '__main__':
