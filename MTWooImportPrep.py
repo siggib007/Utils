@@ -310,6 +310,7 @@ def main():
   global lstURLs
 
   bNotifyEnabled = False
+  strSaveFolder = ""
 
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
