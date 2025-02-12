@@ -255,7 +255,7 @@ def processConf():
 def GetProductDetails(strURL):
   strRet = ""
   dictRet = {}
-  WebRequest = GetURL(strURL, timeout=iTimeOut)
+  WebRequest = GetURL(strURL)
   if iVerbose > 1:
     LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
   strHTML = WebRequest.text
@@ -459,7 +459,7 @@ def main():
       dictOut["Height (cm)"] = lstDimensions[2]
     else:
       dictOut["Height (cm)"] = ""
-    dictOut["Regular price"] = dictTemp["MSRP ISK"]*1.25
+    dictOut["Regular price"] = dictTemp["MSRP ISK"] * 1.25
     dictOut["Categories"] = dictTemp["Product Line"] + "," + dictTemp["Product Category"]
     dictOut["Tags"] = "networking"
     dictOut["Images"] = dictRet["Images"]
