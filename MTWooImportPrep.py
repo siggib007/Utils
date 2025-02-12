@@ -101,69 +101,12 @@ def FetchEnv (strEnvName):
   else:
     return None
 
-def SendNotification (strMsg):
-  global strNotifyURL
-  global strNotifyToken
-  global strNotifyChannel
-  global strNotifyEnabled
-  global bNotifyEnabled
-
-  if not bNotifyEnabled:
-    return "notifications not enabled"
-  iTimeOut = 20  # Connection timeout in seconds
-  iMaxMSGlen = 19999  # Truncate the slack message to this length
-  dictHeader = {}
-  dictHeader["Content-Type"] = "application/json"
-  dictHeader["Accept"] = "application/json"
-  dictHeader["Cache-Control"] = "no-cache"
-  dictHeader["Connection"] = "keep-alive"
-  dictHeader["Authorization"] = "Bearer " + strNotifyToken
-
-  strNotifyURL = strNotifyURL
-
-  dictPayload = {}
-  dictPayload["channel"] = strNotifyChannel
-  dictPayload["text"] = strMsg[:iMaxMSGlen]
-
-  bStatus = False
-  WebRequest = None
-  try:
-    WebRequest = requests.post(
-      strNotifyURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader)
-  except Exception as err:
-    return "FAIL. Issue with sending notifications. {}".format(err)
-  if WebRequest is not None:
-    if isinstance(WebRequest,requests.models.Response)==False:
-      LogEntry ("response is unknown type")
-    else:
-      dictResponse = json.loads(WebRequest.text)
-      if isinstance(dictResponse,dict):
-        if "ok" in dictResponse:
-          bStatus = dictResponse["ok"]
-          if bStatus:
-            LogEntry ("Successfully sent slack notification\n{} ".format(strMsg))
-          else:
-            LogEntry ("Failed to send slack notification")
-        else:
-          LogEntry ("Slack notification response: {}".format(dictResponse))
-      else:
-        LogEntry ("response is not a dictionary, here is what came back: {}".format(dictResponse))
-      if not bStatus or WebRequest.status_code != 200:
-        LogEntry ("Problem: Status Code:{} API Response OK={}".format(WebRequest.status_code,bStatus))
-        LogEntry (WebRequest.text)
-  else:
-    LogEntry("WebRequest not defined")
-
-def LogEntry(strMsg,bAbort=False):
+def LogEntry(strMsg):
 
   strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
   objLogOut.write("{0} : {1}\n".format(strTimeStamp,strMsg))
   if not bQuiet:
     print (strMsg)
-  if bAbort:
-    SendNotification("{} on {} aborting: {}".format (strScriptName,strScriptHost,strMsg[:99]))
-    objLogOut.close()
-    sys.exit(9)
 
 def GetURL(strURL):
   WebRequest = None
@@ -195,61 +138,6 @@ def GetURL(strURL):
     if iVerbose > 2:
       LogEntry("All is OK")
   return WebRequest
-
-def processConf():
-  global strSaveFolder
-  global strGetURL
-  global strNotifyURL
-  global strNotifyToken
-  global strNotifyChannel
-  global strNotifyEnabled
-  global strBlockedURLs
-
-  strNotifyURL = None
-  strNotifyToken = None
-  strNotifyChannel = None
-  strSaveFolder = ""
-  strGetURL = None
-
-  if os.path.isfile(strConf_File):
-    LogEntry ("Configuration File {} exists".format(strConf_File))
-  else:
-    LogEntry ("Can't find configuration file {}".format(strConf_File))
-    return
-
-  strLine = "  "
-  LogEntry ("Reading in configuration")
-  objINIFile = open(strConf_File,"r")
-  strLines = objINIFile.readlines()
-  objINIFile.close()
-
-  for strLine in strLines:
-    strLine = strLine.strip()
-    iCommentLoc = strLine.find("#")
-    if iCommentLoc > -1:
-      strLine = strLine[:iCommentLoc].strip()
-    else:
-      strLine = strLine.strip()
-    if "=" in strLine:
-      strConfParts = strLine.split("=")
-      strVarName = strConfParts[0].strip()
-      strValue = strConfParts[1].strip()
-      if strVarName == "NotificationURL":
-        strNotifyURL = strValue
-      if strVarName == "NotifyChannel":
-        strNotifyChannel = strValue
-      if strVarName == "NotifyToken":
-        strNotifyToken = strValue
-      if strVarName == "NotifyEnable":
-        strNotifyEnabled = strValue
-      if strVarName == "SaveFolder":
-        strSaveFolder = strValue
-      if strVarName == "URL":
-        strGetURL = strValue
-      if strVarName == "Block":
-        strBlockedURLs = strValue
-
-  LogEntry ("Done processing configuration, moving on")
 
 def GetProductDetails(strURL):
   strRet = ""
@@ -290,27 +178,13 @@ def GetProductDetails(strURL):
   return dictRet
 
 def main():
-  global strConf_File
   global objLogOut
   global strScriptName
   global strScriptHost
   global iVerbose
-  global dictLinks
-  global strGetURL
-  global lstNewLinks
-  global dictSiteMap
-  global lstBlockedURLs
-  global strNotifyURL
-  global strNotifyToken
-  global strNotifyChannel
-  global strNotifyEnabled
-  global bNotifyEnabled
   global bQuiet
-  global lstURLs
 
-  bNotifyEnabled = False
   strSaveFolder = ""
-
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
   csvDelim = ","
@@ -332,7 +206,6 @@ def main():
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
   objParser = argparse.ArgumentParser(description="Script to create WooCommerce import files from MikroTik product pages")
-  objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
   objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
   objParser.add_argument("-i", "--input", type=str, help="Path to Mikrotik input file")
   objParser.add_argument("-q", "--quiet", action="store_true", help="Suppress output to screeen regardless of verbosity, only log to file")
@@ -356,31 +229,7 @@ def main():
 
   objLogOut = open(strLogFile,"w", encoding='utf8')
 
-  strConf_File = args.config
   iVerbose = args.verbosity
-  LogEntry("conf file set to: {}".format(strConf_File))
-  processConf()
-
-  if FetchEnv("NOTIFYCHANNEL") is not None:
-    strNotifyChannel = FetchEnv("NOTIFYCHANNEL")
-  if strNotifyChannel == "":
-      strNotifyChannel = None
-  if FetchEnv("NOTIFYTOKEN") is not None:
-    strNotifyToken = FetchEnv("NOTIFYTOKEN")
-  if strNotifyToken == "":
-      strNotifyToken = None
-  if FetchEnv("NOTIFYURL") is not None:
-    strNotifyURL = FetchEnv("NOTIFYURL")
-  if strNotifyURL == "":
-      strNotifyURL = None
-  if FetchEnv("NOTIFYENABLE") is not None:
-    strNotifyEnabled = FetchEnv("NOTIFYENABLE")
-
-  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
-    bNotifyEnabled = False
-    LogEntry("Notify turned off or Missing configuration items for notifications, turning notifications off")
-  else:
-    bNotifyEnabled = True
 
   LogEntry("Verbosity: {}".format(iVerbose))
 
