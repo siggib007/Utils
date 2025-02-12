@@ -295,7 +295,6 @@ def main():
   global objLogOut
   global strScriptName
   global strScriptHost
-  global strSaveFolder
   global iVerbose
   global dictLinks
   global strGetURL
@@ -415,10 +414,9 @@ def main():
     strSaveFolder = args.out
   if strSaveFolder == "":
     strSaveFolder = strInDir
-  else:
-    strSaveFolder = strSaveFolder.replace("\\","/")
-    if strSaveFolder[-1:] != "/":
-      strSaveFolder += "/"
+  strSaveFolder = strSaveFolder.replace("\\","/")
+  if strSaveFolder[-1:] != "/":
+    strSaveFolder += "/"
   LogEntry("Save Folder set to {}".format(strSaveFolder))
   if not os.path.exists (strSaveFolder) :
     os.makedirs(strSaveFolder)
@@ -670,18 +668,19 @@ def main():
   for objRow in lstOut:
     if len(objRow.keys()) > len(lstFieldNames):
       lstFieldNames = objRow.keys()
-  strOutFile = strSaveFolder + "MikroTikProducts.json"
+  strOutFile = strSaveFolder + "MTWoocommerceImport-{}.json".format(ISO)
   objFileOut = GetFileHandle(strOutFile, "w")
   objFileOut.write(json.dumps(lstOut, indent=2))
   objFileOut.close()
-  strOutFile = strSaveFolder + "MikroTikProducts.csv"
-  with open(strOutFile, mode='w', newline='') as objFileOut:
-    writer = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
-    writer.writeheader()
+  LogEntry("Done processing MikroTik product file, json saved to {}".format(strOutFile))
+  strOutFile = strSaveFolder + "MTWoocommerceImport-{}.csv".format(ISO)
+  with open(strOutFile, mode='w', newline='', encoding='utf-8') as objFileOut:
+    objWriter = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
+    objWriter.writeheader()
     for objRow in lstOut:
-        writer.writerow(objRow)
+        objWriter.writerow(objRow)
 
-  LogEntry("Done processing MikroTik product file, output saved to {}".format(strOutFile))
+  LogEntry("CSV output saved to {}".format(strOutFile))
   objLogOut.close()
 
 if __name__ == '__main__':
