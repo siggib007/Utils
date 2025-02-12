@@ -80,7 +80,7 @@ def GetFileHandle(strFileName, strperm):
         if len(strperm) > 1:
           objFileHndl = open(strFileName, strperm)
         else:
-          objFileHndl = open(strFileName, strperm, encoding='utf8')
+          objFileHndl = open(strFileName, strperm, encoding='utf-8-sig')
         return objFileHndl
     except PermissionError:
         LogEntry("unable to open output file {} for {}, "
@@ -387,8 +387,8 @@ def main():
 
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
-      LogEntry("Working on {} - {} - jump: {}".format(
-          dictTemp["Label"], dictTemp["Address"], dictTemp["Jump"]), 4)
+      LogEntry("Working on {} - {} - {}".format(
+          dictTemp["Product code"], dictTemp["Product name"], dictTemp["Product Line"]))
 
 
 if __name__ == '__main__':
