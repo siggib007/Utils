@@ -60,41 +60,41 @@ def getInput(strPrompt):
     sys.exit(5)
 
 def GetFileHandle(strFileName, strperm):
-    """
-    This wraps error handling around standard file open function
-    Parameters:
-      strFileName: Simple string with filename to be opened
-      strperm: single character string, usually w or r to indicate read vs write.
-      other options such as "a" and "x" are valid too.
-    Returns:
-      File Handle object
-    """
-    dictModes = {}
-    dictModes["w"] = "writing"
-    dictModes["r"] = "reading"
-    dictModes["a"] = "appending"
-    dictModes["x"] = "opening"
-    dictModes["wb"] = "binary write"
+  """
+  This wraps error handling around standard file open function
+  Parameters:
+    strFileName: Simple string with filename to be opened
+    strperm: single character string, usually w or r to indicate read vs write.
+    other options such as "a" and "x" are valid too.
+  Returns:
+    File Handle object
+  """
+  dictModes = {}
+  dictModes["w"] = "writing"
+  dictModes["r"] = "reading"
+  dictModes["a"] = "appending"
+  dictModes["x"] = "opening"
+  dictModes["wb"] = "binary write"
 
-    cMode = strperm[:2].lower().strip()
+  cMode = strperm[:2].lower().strip()
 
-    try:
-        if len(strperm) > 1:
-          objFileHndl = open(strFileName, strperm)
-        else:
-          objFileHndl = open(strFileName, strperm, encoding='utf-8-sig')
-        return objFileHndl
-    except PermissionError:
-        LogEntry("unable to open output file {} for {}, "
-              "permission denied.".format(strFileName, dictModes[cMode]))
-        return ("Permission denied")
-    except FileNotFoundError:
-        LogEntry("unable to open output file {} for {}, "
-              "Issue with the path".format(strFileName, dictModes[cMode]))
-        return ("FileNotFound")
-    except Exception as err:
-      LogEntry("Unknown error: {}".format(err))
-      return ("unknowErr")
+  try:
+    if len(strperm) > 1:
+      objFileHndl = open(strFileName, strperm)
+    else:
+      objFileHndl = open(strFileName, strperm, encoding='utf-8-sig')
+    return objFileHndl
+  except PermissionError:
+    LogEntry("unable to open output file {} for {}, "
+          "permission denied.".format(strFileName, dictModes[cMode]))
+    return ("Permission denied")
+  except FileNotFoundError:
+    LogEntry("unable to open output file {} for {}, "
+          "Issue with the path".format(strFileName, dictModes[cMode]))
+    return ("FileNotFound")
+  except Exception as err:
+    LogEntry("Unknown error: {}".format(err))
+    return ("unknowErr")
 
 def FetchEnv (strEnvName):
   if os.getenv(strEnvName) != "" and os.getenv(strEnvName) is not None:
@@ -252,8 +252,9 @@ def processConf():
 
   LogEntry ("Done processing configuration, moving on")
 
-def GetImgURLs(strURL):
+def GetProductDetails(strURL):
   strRet = ""
+  dictRet = {}
   WebRequest = GetURL(strURL, timeout=iTimeOut)
   if iVerbose > 1:
     LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
@@ -264,10 +265,28 @@ def GetImgURLs(strURL):
   for objLink in objSoup.findAll("img"):
     strImg = objLink.get("src")
     if strImg[:4] == "http":
-      strRet += strImg + "\n"
+      strRet += strImg + ","
       if iVerbose > 2:
         LogEntry("Found an image: {}".format(strImg))
-  return strRet
+  dictRet["Images"] = strRet
+  strRet = ""
+  for objDiv in objSoup.findAll("div"):
+    objClass = objDiv.get("class")
+    if objClass is not None and "product-page" in objClass:
+      if iVerbose > 2:
+        LogEntry("Found a div, class: {}".format(objClass))
+      for objP in objDiv.findAll("p"):
+        strTemp = str(objP)
+        strRet += strTemp + "\n"
+  for objSpec in objSoup.find_all(id="specifications"):
+    for objChild in objSpec.children:
+      strTemp = str(objChild)
+      if "price" in strTemp:
+        continue
+      if strTemp[0] == "<":
+        strRet += strTemp + "\n"
+  dictRet["Details"] = strRet
+  return dictRet
 
 def main():
   global strConf_File
@@ -409,10 +428,47 @@ def main():
     LogEntry("only able to process csv files. Unable to process {} files".format(strFileExt))
     sys.exit(5)
 
+  dictOut = {}
+  lstOut = []
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
-      LogEntry("Working on {} - {} - {} - {}".format(
-          dictTemp["Product code"], dictTemp["Product name"], dictTemp["Product Line"],dictTemp["URL"]))
+    LogEntry("Working on {} - {} - {} - {}".format(
+        dictTemp["Product code"], dictTemp["Product name"], dictTemp["Product Line"],dictTemp["URL"]))
+    lstDimensions = dictTemp["Dimensions"].split("x")
+    dictRet = GetProductDetails(dictTemp["URL"])
+    dictOut["Type"] = "simple"
+    dictOut["SKU"] = dictTemp["Product code"]
+    dictOut["Name"] = dictTemp["Product name"]
+    dictOut["Published"] = "1"
+    dictOut["Is Featured?"] = "0"
+    dictOut["Visibility in catalog"] = "visible"
+    dictOut["Short Description"] = dictTemp["Description"]
+    dictOut["Description"] = dictRet["Details"]
+    dictOut["Tax status"] = "taxable"
+    dictOut["In stock?"] = "backorder"
+    dictOut["Stock"] = "0"
+    dictOut["Backorders allowed?"] = "notify"
+    dictOut["Sold individually?"] = "0"
+    dictOut["Weight (kg)"] = ""
+    dictOut["Length (cm)"] = lstDimensions[0]
+    if len(lstDimensions) > 1:
+      dictOut["Width (cm)"] = lstDimensions[1]
+    else:
+      dictOut["Width (cm)"] = ""
+    if len(lstDimensions) > 2:
+      dictOut["Height (cm)"] = lstDimensions[2]
+    else:
+      dictOut["Height (cm)"] = ""
+    dictOut["Regular price"] = dictTemp["MSRP ISK"]*1.25
+    dictOut["Categories"] = dictTemp["Product Line"] + "," + dictTemp["Product Category"]
+    dictOut["Tags"] = "networking"
+    dictOut["Images"] = dictRet["Images"]
+    dictOut["External URL"] = dictTemp["URL"]
+    dictOut["Brands"] = "MikroTik"
+    dictOut["MPN"] = dictTemp["Product code"]
+    dictOut["Meta: _yoast_wpseo_focuskw"] = dictTemp["Product code"]
+    dictOut["Meta: _yoast_wpseo_focuskw"] = dictTemp["Product code"] + dictTemp["Description"][:120]
+
 
 
 if __name__ == '__main__':
