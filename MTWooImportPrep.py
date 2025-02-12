@@ -258,13 +258,15 @@ def GetProductDetails(strURL):
   WebRequest = GetURL(strURL)
   if iVerbose > 1:
     LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
+  if WebRequest is None or WebRequest.status_code != 200:
+    return {"Images":"","Details":""}
   strHTML = WebRequest.text
   objSoup = BeautifulSoup(strHTML,features="html5lib")
   if iVerbose > 1:
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
   for objLink in objSoup.findAll("img"):
     strImg = objLink.get("src")
-    if strImg[:4] == "http":
+    if strImg is not None and strImg[:4] == "http":
       strRet += strImg + ","
       if iVerbose > 2:
         LogEntry("Found an image: {}".format(strImg))
@@ -664,14 +666,20 @@ def main():
     lstOut.append(dictOut)
     dictOut = {}
   objFileIn.close()
+  lstFieldNames = lstOut[0].keys() if lstOut else []
   strOutFile = strSaveFolder + "MikroTikProducts.json"
   objFileOut = GetFileHandle(strOutFile, "w")
-  objFileOut.write(json.dumps(lstOut, indent=4))
+  objFileOut.write(json.dumps(lstOut, indent=2))
   objFileOut.close()
+  strOutFile = strSaveFolder + "MikroTikProducts.csv"
+  with open(strOutFile, mode='w', newline='') as objFileOut:
+    writer = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
+    writer.writeheader()
+    for objRow in lstOut:
+        writer.writerow(objRow)
+
   LogEntry("Done processing MikroTik product file, output saved to {}".format(strOutFile))
   objLogOut.close()
-
-
 
 if __name__ == '__main__':
   main()
