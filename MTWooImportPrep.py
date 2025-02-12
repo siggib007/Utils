@@ -468,8 +468,54 @@ def main():
     dictOut["MPN"] = dictTemp["Product code"]
     dictOut["Meta: _yoast_wpseo_focuskw"] = dictTemp["Product code"]
     dictOut["Meta: _yoast_wpseo_focuskw"] = dictTemp["Product code"] + dictTemp["Description"][:120]
-
-
-
+    iAttrCount = 1
+    if dictTemp["Ingress Protection"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "Ingress Protection"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["Ingress Protection"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["Wi-Fi Gen"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "Wi-Fi Gen"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["Wi-Fi Gen"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["Architecture"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "Architecture"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["Architecture"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["CPU"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "CPU"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["CPU"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["CPU core count"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "CPU core count"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["CPU core count"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["CPU nominal frequency"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "CPU nominal frequency"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["CPU nominal frequency"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["License level"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "License level"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["License level"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
+    if dictTemp["Operating System"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "Operating System"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["Operating System"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
 if __name__ == '__main__':
   main()
