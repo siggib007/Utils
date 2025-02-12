@@ -15,7 +15,6 @@ pip install bs4
 # Import libraries
 import os
 import time
-import urllib.parse as urlparse
 import subprocess
 import platform
 import sys
