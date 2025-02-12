@@ -50,6 +50,8 @@ except:
   btKinterOK = False
 # End imports
 
+iTimeOut = 120
+
 def getInput(strPrompt):
   if sys.version_info[0] > 2 :
     return input(strPrompt)
@@ -111,14 +113,14 @@ def SendNotification (strMsg):
     return "notifications not enabled"
   iTimeOut = 20  # Connection timeout in seconds
   iMaxMSGlen = 19999  # Truncate the slack message to this length
-
-  strNotifyURL = strNotifyURL
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
   dictHeader["Accept"] = "application/json"
   dictHeader["Cache-Control"] = "no-cache"
   dictHeader["Connection"] = "keep-alive"
   dictHeader["Authorization"] = "Bearer " + strNotifyToken
+
+  strNotifyURL = strNotifyURL
 
   dictPayload = {}
   dictPayload["channel"] = strNotifyChannel
@@ -164,8 +166,14 @@ def LogEntry(strMsg,bAbort=False):
     objLogOut.close()
     sys.exit(9)
 
-def GetURL(strURL,dictHeader):
+def GetURL(strURL):
   WebRequest = None
+  dictHeader = {}
+  dictHeader["Content-Type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Cache-Control"] = "no-cache"
+  dictHeader["Connection"] = "keep-alive"
+  dictHeader["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36 Edge/16.16299"
 
   if iVerbose > 0:
     LogEntry ("Doing a get to URL:{}".format(strURL))
@@ -244,13 +252,29 @@ def processConf():
 
   LogEntry ("Done processing configuration, moving on")
 
+def GetImgURLs(strURL):
+  strRet = ""
+  WebRequest = GetURL(strURL, timeout=iTimeOut)
+  if iVerbose > 1:
+    LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
+  strHTML = WebRequest.text
+  objSoup = BeautifulSoup(strHTML,features="html5lib")
+  if iVerbose > 1:
+    LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
+  for objLink in objSoup.findAll("img"):
+    strImg = objLink.get("src")
+    if strImg[:4] == "http":
+      strRet += strImg + "\n"
+      if iVerbose > 2:
+        LogEntry("Found an image: {}".format(strImg))
+  return strRet
+
 def main():
   global strConf_File
   global objLogOut
   global strScriptName
   global strScriptHost
   global strSaveFolder
-  global iTimeOut
   global iVerbose
   global dictLinks
   global strGetURL
@@ -267,7 +291,7 @@ def main():
 
   bNotifyEnabled = False
 
-  iTimeOut = 120
+
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
   csvDelim = ","
 
@@ -387,8 +411,8 @@ def main():
 
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
-      LogEntry("Working on {} - {} - {}".format(
-          dictTemp["Product code"], dictTemp["Product name"], dictTemp["Product Line"]))
+      LogEntry("Working on {} - {} - {} - {}".format(
+          dictTemp["Product code"], dictTemp["Product name"], dictTemp["Product Line"],dictTemp["URL"]))
 
 
 if __name__ == '__main__':
