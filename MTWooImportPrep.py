@@ -669,12 +669,12 @@ def main():
   for objRow in lstOut:
     if len(objRow.keys()) > len(lstFieldNames):
       lstFieldNames = objRow.keys()
-  strOutFile = strSaveFolder + "MTWoocommerceImport-{}.json".format(ISO)
+  strOutFile = strSaveFolder + "MTWoocommerceImport{}.json".format(ISO)
   objFileOut = GetFileHandle(strOutFile, "w")
   objFileOut.write(json.dumps(lstOut, indent=2))
   objFileOut.close()
   LogEntry("Done processing MikroTik product file, json saved to {}".format(strOutFile))
-  strOutFile = strSaveFolder + "MTWoocommerceImport-{}.csv".format(ISO)
+  strOutFile = strSaveFolder + "MTWoocommerceImport{}.csv".format(ISO)
   with open(strOutFile, mode='w', newline='', encoding='utf-8') as objFileOut:
     objWriter = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
     objWriter.writeheader()
