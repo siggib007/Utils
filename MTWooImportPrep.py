@@ -153,7 +153,7 @@ def GetProductDetails(strURL):
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
   for objLink in objSoup.findAll("img"):
     strImg = objLink.get("src")
-    if strImg is not None and strImg[:4] == "http":
+    if strImg is not None and strImg[:4] == "http" and strImg[-4:] == ".png":
       strRet += strImg + ","
       if iVerbose > 2:
         LogEntry("Found an image: {}".format(strImg))
@@ -316,8 +316,14 @@ def main():
     dictOut["Brands"] = "MikroTik"
     dictOut["MPN"] = dictTemp["Product code"]
     dictOut["Meta: _yoast_wpseo_focuskw"] = dictTemp["Product code"]
-    dictOut["Meta: _yoast_wpseo_focuskw"] = dictTemp["Product code"] + dictTemp["Description"][:120]
+    dictOut["Meta: _yoast_wpseo_metadesc"] = dictTemp["Product code"] + dictTemp["Description"][:120]
     iAttrCount = 1
+    if dictTemp["Dimensions"] != "":
+      dictOut["Attribute {} name".format(iAttrCount)] = "Dimensions"
+      dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["Dimensions"]
+      dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+      dictOut["Attribute {} global".format(iAttrCount)] = "0"
+      iAttrCount += 1
     if dictTemp["Ingress Protection"] != "":
       dictOut["Attribute {} name".format(iAttrCount)] = "Ingress Protection"
       dictOut["Attribute {} value(s)".format(iAttrCount)] = dictTemp["Ingress Protection"]
