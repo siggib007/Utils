@@ -14,6 +14,7 @@ pip install bs4
 
 # Import libraries
 import os
+import re
 import time
 import subprocess
 import platform
@@ -50,6 +51,12 @@ except:
 # End imports
 
 iTimeOut = 120
+
+def Convert2Int(strInt):
+    match = re.search(r'\d+', strInt)
+    if match:
+        return int(match.group())
+    return None
 
 def getInput(strPrompt):
   if sys.version_info[0] > 2 :
@@ -139,6 +146,12 @@ def GetURL(strURL):
       LogEntry("All is OK")
   return WebRequest
 
+def StripPrice(strCheck):
+  strPattern = r"<p>\$\d+\.\d*</p>"
+  strReplace = r""
+  return re.sub(strPattern,strReplace,strCheck)
+
+
 def GetProductDetails(strURL):
   strRet = ""
   dictRet = {}
@@ -174,7 +187,7 @@ def GetProductDetails(strURL):
         continue
       if strTemp[0] == "<":
         strRet += strTemp + "\n"
-  dictRet["Details"] = strRet
+  dictRet["Details"] = StripPrice(strRet)
   return dictRet
 
 def main():
@@ -299,13 +312,28 @@ def main():
     dictOut["Backorders allowed?"] = "notify"
     dictOut["Sold individually?"] = "0"
     dictOut["Weight (kg)"] = ""
-    dictOut["Length (cm)"] = lstDimensions[0]
+    iTemp = Convert2Int(lstDimensions[0])
+    if iTemp is None:
+      iTemp = ""
+    else:
+      iTemp = iTemp/10
+    dictOut["Length (cm)"] = iTemp
     if len(lstDimensions) > 1:
-      dictOut["Width (cm)"] = lstDimensions[1]
+      iTemp = Convert2Int(lstDimensions[1])
+      if iTemp is None:
+        iTemp = ""
+      else:
+        iTemp = iTemp/10
+      dictOut["Width (cm)"] = iTemp
     else:
       dictOut["Width (cm)"] = ""
     if len(lstDimensions) > 2:
-      dictOut["Height (cm)"] = lstDimensions[2]
+      iTemp = Convert2Int(lstDimensions[2])
+      if iTemp is None:
+        iTemp = ""
+      else:
+        iTemp = iTemp/10
+      dictOut["Height (cm)"] = iTemp
     else:
       dictOut["Height (cm)"] = ""
     dictOut["Regular price"] = int(float(dictTemp["MSRP ISK"]) * 1.25)
