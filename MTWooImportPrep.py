@@ -151,7 +151,6 @@ def StripPrice(strCheck):
   strReplace = r""
   return re.sub(strPattern,strReplace,strCheck)
 
-
 def GetProductDetails(strURL):
   strRet = ""
   dictRet = {}
