@@ -155,9 +155,11 @@ def GetProductDetails(strURL):
   strRet = ""
   dictRet = {}
   WebRequest = GetURL(strURL)
+  if WebRequest is None:
+    return {"Images":"","Details":""}
   if iVerbose > 1:
     LogEntry ("call resulted in status code {}".format(WebRequest.status_code))
-  if WebRequest is None or WebRequest.status_code != 200:
+  if WebRequest.status_code != 200:
     return {"Images":"","Details":""}
   strHTML = WebRequest.text
   objSoup = BeautifulSoup(strHTML,features="html5lib")
