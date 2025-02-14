@@ -147,9 +147,10 @@ def GetURL(strURL):
   return WebRequest
 
 def StripPrice(strCheck):
-  strPattern = r"<p>\$\d+\.\d*</p>"
-  strReplace = r""
-  return re.sub(strPattern,strReplace,strCheck)
+  strPattern = r"<p>\$\d+\.*\d*</p>"
+  strReplace = " "
+  strTemp = re.sub(strPattern,strReplace,strCheck)
+  return strTemp.strip()
 
 def GetProductDetails(strURL):
   strRet = ""
@@ -180,14 +181,14 @@ def GetProductDetails(strURL):
         LogEntry("Found a div, class: {}".format(objClass))
       for objP in objDiv.findAll("p"):
         strTemp = str(objP)
-        strRet += strTemp + "\n"
+        strRet += StripPrice(strTemp) + "\n"
   for objSpec in objSoup.find_all(id="specifications"):
     for objChild in objSpec.children:
       strTemp = str(objChild)
-      if "price" in strTemp:
-        continue
+      #if "price" in strTemp:
+      #  continue
       if strTemp[0] == "<":
-        strRet += strTemp + "\n"
+        strRet += StripPrice(strTemp) + "\n"
   dictRet["Details"] = StripPrice(strRet)
   return dictRet
 
