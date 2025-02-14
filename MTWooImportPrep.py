@@ -170,7 +170,7 @@ def GetProductDetails(strURL):
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
   for objLink in objSoup.findAll("a"):
     strImg = objLink.get("href")
-    if strImg is not None and strImg[:4] == "http" and strImg[-4:] == ".png":
+    if strImg is not None and strImg[:4] == "http" and strImg[-10:] == "hi_res.png":
       strRet += strImg + ","
       if iVerbose > 2:
         LogEntry("Found an image: {}".format(strImg))
