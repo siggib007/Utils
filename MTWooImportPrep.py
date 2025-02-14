@@ -148,8 +148,10 @@ def GetURL(strURL):
 
 def StripPrice(strCheck):
   strPattern = r"<p>\$\d+\.*\d*</p>"
-  strReplace = " "
+  strReplace = ""
   strTemp = re.sub(strPattern,strReplace,strCheck)
+  strPattern = r"<tr>\s*<td>Suggested price</td>\s*<td>\$\d+\.\d*</td>\s*</tr>"
+  strTemp = re.sub(strPattern,strReplace,strTemp)
   return strTemp.strip()
 
 def GetProductDetails(strURL):
@@ -185,8 +187,6 @@ def GetProductDetails(strURL):
   for objSpec in objSoup.find_all(id="specifications"):
     for objChild in objSpec.children:
       strTemp = str(objChild)
-      #if "price" in strTemp:
-      #  continue
       if strTemp[0] == "<":
         strRet += StripPrice(strTemp) + "\n"
   dictRet["Details"] = StripPrice(strRet)
