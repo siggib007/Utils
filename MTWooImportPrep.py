@@ -52,6 +52,17 @@ except:
 
 iTimeOut = 120
 
+def ImageDownload(strURL):
+    try:
+        response = requests.get(strURL, stream=True)
+        response.raise_for_status()
+        with open(strImgSaveFolder, 'wb') as objFile:
+            for chunk in response.iter_content(1024):
+                objFile.write(chunk)
+        LogEntry(f"Image successfully downloaded: {strImgSaveFolder}")
+    except requests.exceptions.RequestException as e:
+        LogEntry(f"Error downloading image: {e}")
+
 def Convert2Int(strInt):
     match = re.search(r'\d+', strInt)
     if match:
@@ -171,7 +182,8 @@ def GetProductDetails(strURL):
   for objLink in objSoup.findAll("a"):
     strImg = objLink.get("href")
     if strImg is not None and strImg[:4] == "http" and strImg[-10:] == "hi_res.png":
-      strRet += strImg + ","
+      ImageDownload(strImg)
+      strRet += os.path.basename(strImg)  + ","
       if iVerbose > 2:
         LogEntry("Found an image: {}".format(strImg))
   dictRet["Images"] = strRet
@@ -198,6 +210,7 @@ def main():
   global strScriptHost
   global iVerbose
   global bQuiet
+  global strImgSaveFolder
 
   strSaveFolder = ""
 
@@ -285,7 +298,10 @@ def main():
   if not os.path.exists (strSaveFolder) :
     os.makedirs(strSaveFolder)
     LogEntry ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
-
+  strImgSaveFolder = strSaveFolder + "Images/"
+  if not os.path.exists (strImgSaveFolder) :
+    os.makedirs(strImgSaveFolder)
+    LogEntry ("\nPath '{0}' for images didn't exists, so I create it!\n".format(strImgSaveFolder))
   if strFileExt.lower() == "csv":
     objFileIn = GetFileHandle (strFilein, "r")
   else:
