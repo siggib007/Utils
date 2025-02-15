@@ -53,13 +53,18 @@ except:
 iTimeOut = 120
 
 def ImageDownload(strURL):
+    iLoc = strURL.rfind("/")
+    strImgSavePath = strImgSaveFolder + strURL[iLoc+1:].replace("%20","_")
+    if iVerbose > 2:
+        LogEntry(f"Image URL: {strURL}")
+        LogEntry(f"Image Save Path: {strImgSavePath}")
     try:
         response = requests.get(strURL, stream=True)
         response.raise_for_status()
-        with open(strImgSaveFolder, 'wb') as objFile:
+        with open(strImgSavePath, 'wb') as objFile:
             for chunk in response.iter_content(1024):
                 objFile.write(chunk)
-        LogEntry(f"Image successfully downloaded: {strImgSaveFolder}")
+        LogEntry(f"Image successfully downloaded: {strImgSavePath}")
     except requests.exceptions.RequestException as e:
         LogEntry(f"Error downloading image: {e}")
 
