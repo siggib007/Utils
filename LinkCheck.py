@@ -232,7 +232,7 @@ def processPage(strURL):
     dictLinks[strURL]["code"] = strStatus
     dictSiteMap[strURL]["code"] = strStatus
     dictLinks[strURL]["src"] = dictSiteMap[strURL]["src"]
-    if strStatus != 200 and strStatus != 403:
+    if strStatus > 399 and strStatus < 500 and strStatus != 403:
       LogEntry("URL:{} Status:{}".format(strURL,strStatus))
       strBadLinks += "Link {} on {} returned status {}\n".format(strURL,dictSiteMap[strURL]["src"],strStatus)
   if not bDig:
@@ -252,7 +252,7 @@ def processPage(strURL):
   objSoup = BeautifulSoup(strHTML,features="html.parser")
   if iVerbose > 3:
     LogEntry("Fetched URL and parsed into a beautiful Soup, response length is {}".format(len(strHTML)))
-  for objLink in objSoup.findAll("a"):
+  for objLink in objSoup.find_all("a"):
     strTemp = objLink.get("href")
     if strTemp is not None and strTemp[:4].lower() == "http":
       if strTemp not in dictSiteMap: # dictLinks and strTemp not in lstLinks and strTemp not in lstNewLinks:
