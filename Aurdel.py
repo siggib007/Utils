@@ -157,10 +157,12 @@ def processConf():
   global strCustID
   global strCompID
   global strAPIKey
+  global strSaveFolder
 
   strCustID = None
   strCompID = None
   strAPIKey = None
+  strSaveFolder = ""
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -191,6 +193,8 @@ def processConf():
         strCompID = strValue
       if strVarName == "APIKey":
         strAPIKey = strValue
+      if strVarName == "SaveFolder":
+        strSaveFolder = strValue
 
   LogEntry ("Done processing configuration, moving on")
 
@@ -200,6 +204,7 @@ def main():
   global strCompID
   global strAPIKey
   global strConf_File
+  global strSaveFolder
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
 
@@ -268,14 +273,22 @@ def main():
     objLogOut.close()
     sys.exit(1)
 
-  strXML = FetchXML(args.input)
-  try:
-      dictInput = xmltodict.parse(strXML)
-  except xml.parsers.expat.ExpatError as err:
-      dictInput={}
-      LogEntry("Expat Error: {}\n{}".format(err,strXML[:99]))
+  if args.input is None:
+     strInput = getInput("Please enter part number to process: ")
+  else:
+      strInput = args.input.strip()
 
-  LogEntry("File read in, here are top level keys {}".format(dictInput.keys()))
+  strXML = FetchXML(strInput)
+  try:
+    dictInput = xmltodict.parse(strXML)
+  except xml.parsers.expat.ExpatError as err:
+    dictInput={}
+    LogEntry("Expat Error: {}\n{}".format(err,strXML[:99]))
+    objLogOut.close()
+    sys.exit(1)
+
+  dictItems = dictInput["database"]["DELTACO.SE"]["data"]["items"]["item"]
+  LogEntry("File read in, here are top level keys {}".format(dictItems.keys()))
 
 
 
