@@ -274,10 +274,11 @@ def ProcessItem(dictItem):
       dictItem["physicaldimensions"]["height"]["@unit"]
       ))
   dictAttributes = {}
-  for spec in dictItem["specifications"]["specification"]:
-    strSpecDesc = Translate(spec["title"]["description"])
-    strSpecValue = Translate(spec["values"]["value"]["description"])
-    dictAttributes[strSpecDesc] = strSpecValue
+  if "specifications" in dictItem and "specification" in dictItem["specifications"]:
+    for spec in dictItem["specifications"]["specification"]:
+      strSpecDesc = Translate(spec["title"]["description"])
+      strSpecValue = Translate(spec["values"]["value"]["description"])
+      dictAttributes[strSpecDesc] = strSpecValue
   lstCatergories = []
   if isinstance(dictItem["categories"]["category"]["subcategory"], list):
     for cat in dictItem["categories"]["category"]["subcategory"]:
