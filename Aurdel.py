@@ -232,6 +232,7 @@ def main():
   strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
   objLogOut = GetFileHandle(strLogFile, "w")
 
+  iLoc = sys.argv[0].rfind(".")
   strDefConf = sys.argv[0][:iLoc] + ".ini"
   objParser = argparse.ArgumentParser(description="Script to fetch details on particulat part number")
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
@@ -287,10 +288,22 @@ def main():
     objLogOut.close()
     sys.exit(1)
 
+  #LogEntry("File read in, here are top level keys {}".format(dictInput.keys()))
+
+  if "Error" in dictInput.keys():
+    LogEntry("Error {} in response:{}\n{}".format(dictInput["Error"]["Code"],dictInput["Error"]["Info"],dictInput["Error"]["Details"]))
+    objLogOut.close()
+    sys.exit(1)
+
   dictItems = dictInput["database"]["DELTACO.SE"]["data"]["items"]["item"]
-  LogEntry("File read in, here are top level keys {}".format(dictItems.keys()))
-
-
+  #LogEntry("File read in, here are top level keys {}".format(dictItems.keys()))
+  print("MFG:{} MPN:{} EAN:{}".format(dictItems["manufacturer"]["description"], dictItems["manufacturer"]["@id"], dictItems["ean"]))
+  print("Short:{}".format(dictItems["description"]["short"]))
+  print("Long:{}".format(dictItems["description"]["long"]))
+  print("Price:{} {}".format(dictItems["price"]["net"],dictItems["price"]["@currencycode"]))
+  print("Stock:{}".format(dictItems["stock"]["@quantity"]))
+  print("Pieces Per Carton:{}".format(dictItems["piecespercarton"]))
+  print("Categories:{}".format(",".join(dictItems["categories"]["category"]["subcategory"])))
 
 
   LogEntry("Done!")
