@@ -100,7 +100,7 @@ def CleanString(strClean):
   for cBad in lstBadChar:
     strClean = strClean.replace(cBad, "")
 
-  strClean = strClean.replace(".","-")
+  #strClean = strClean.replace(".","-")
   strClean = strClean.strip()
   if len(strClean) > 50:
     strClean = strClean[:50] + strClean[-4:]
@@ -233,6 +233,73 @@ def Translate(strText):
   strText = dictResponse["translations"][0]["text"]
   return strText
 
+def ProcessItem(dictItem):
+  print("ItemID:{}".format(dictItem["@id"]))
+  print("MFG:{} MPN:{} EAN:{}".format(dictItem["manufacturer"]["description"], dictItem["manufacturer"]["@id"], dictItem["ean"]))
+  print("Short:{}".format(dictItem["description"]["short"]))
+  strLongDesc = Translate(dictItem["description"]["long"])
+  print("Long:{}".format(strLongDesc))
+  print("Price:{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"]))
+  print("Stock:{}".format(dictItem["stock"]["@quantity"]))
+  print("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
+  print("Weight:{} {}".format(dictItem["weight"]["#text"],dictItem["weight"]["@unit"]))
+  if "physicaldimensions" in dictItem:
+    print("Dimensions: {} {} W x {} {} D x {} {} H".format(
+      dictItem["physicaldimensions"]["width"]["#text"],
+      dictItem["physicaldimensions"]["width"]["@unit"],
+      dictItem["physicaldimensions"]["depth"]["#text"],
+      dictItem["physicaldimensions"]["depth"]["@unit"],
+      dictItem["physicaldimensions"]["height"]["#text"],
+      dictItem["physicaldimensions"]["height"]["@unit"]
+      ))
+  dictAttributes = {}
+  for spec in dictItem["specifications"]["specification"]:
+    strSpecDesc = Translate(spec["title"]["description"])
+    strSpecValue = Translate(spec["values"]["value"]["description"])
+    dictAttributes[strSpecDesc] = strSpecValue
+  lstCatergories = []
+  if isinstance(dictItem["categories"]["category"]["subcategory"], list):
+    for cat in dictItem["categories"]["category"]["subcategory"]:
+      strCatDesc = Translate(cat["description"])
+      lstCatergories.append(strCatDesc)
+  else:
+    strCatDesc = Translate(dictItem["categories"]["category"]["subcategory"]["description"])
+    lstCatergories.append(strCatDesc)
+  print("Categories:{}".format(",".join(lstCatergories)))
+  print("Attributes:")
+  for strKey in dictAttributes.keys():
+    print("   {}:{}".format(strKey,dictAttributes[strKey]))
+  dictPictures = {}
+  strPicFileName = dictItem["pictures"]["list"]["picture"]["filename"]
+  strPicURL = dictItem["pictures"]["list"]["picture"]["url"]
+  dictPictures[strPicFileName] = strPicURL
+  strPicFileName = dictItem["pictures"]["gallery"]["picture"]["filename"]
+  strPicURL = dictItem["pictures"]["gallery"]["picture"]["url"]
+  if strPicFileName not in dictPictures:
+    dictPictures[strPicFileName] = strPicURL
+  strPicFileName = dictItem["pictures"]["zoom"]["picture"]["filename"]
+  strPicURL = dictItem["pictures"]["zoom"]["picture"]["url"]
+  if strPicFileName not in dictPictures:
+    dictPictures[strPicFileName] = strPicURL
+  for pic in dictPictures:
+    strPicFileName = CleanString(pic)
+    strPicFileName = strSaveFolder + strPicFileName
+    strPicURL = dictPictures[pic]
+    LogEntry("Downloading picture {} to {}".format(strPicURL,strPicFileName))
+    try:
+      WebRequest = requests.get(strPicURL, headers={}, verify=False, timeout=iTimeOut)
+      if isinstance(WebRequest, requests.models.Response) == False:
+        LogEntry("response is unknown type")
+        continue
+      if WebRequest.status_code != 200:
+        LogEntry("Unable to download image: {}".format(strPicURL))
+        continue
+      with open(strPicFileName, "wb") as objFileHndl:
+        objFileHndl.write(WebRequest.content)
+        objFileHndl.close()
+    except Exception as err:
+      LogEntry("Issue with API call. {}".format(err))
+
 def main():
   global objLogOut
   global strCustID
@@ -335,69 +402,13 @@ def main():
 
   if "items" in dictInput["database"]["DELTACO.SE"]["data"]:
     dictItems = dictInput["database"]["DELTACO.SE"]["data"]["items"]["item"]
-    print("ItemID:{}".format(dictItems["@id"]))
-    print("MFG:{} MPN:{} EAN:{}".format(dictItems["manufacturer"]["description"], dictItems["manufacturer"]["@id"], dictItems["ean"]))
-    print("Short:{}".format(dictItems["description"]["short"]))
-    strLongDesc = Translate(dictItems["description"]["long"])
-    print("Long:{}".format(strLongDesc))
-    print("Price:{} {}".format(dictItems["price"]["net"],dictItems["price"]["@currencycode"]))
-    print("Stock:{}".format(dictItems["stock"]["@quantity"]))
-    print("Pieces Per Carton:{}".format(dictItems["piecespercarton"]))
-    print("Weight:{} {}".format(dictItems["weight"]["#text"],dictItems["weight"]["@unit"]))
-    print("Dimensions: {} {} W x {} {} D x {} {} H".format(
-      dictItems["physicaldimensions"]["width"]["#text"],
-      dictItems["physicaldimensions"]["width"]["@unit"],
-      dictItems["physicaldimensions"]["depth"]["#text"],
-      dictItems["physicaldimensions"]["depth"]["@unit"],
-      dictItems["physicaldimensions"]["height"]["#text"],
-      dictItems["physicaldimensions"]["height"]["@unit"]
-      ))
-    dictAttributes = {}
-    for spec in dictItems["specifications"]["specification"]:
-      strSpecDesc = Translate(spec["title"]["description"])
-      strSpecValue = Translate(spec["values"]["value"]["description"])
-      dictAttributes[strSpecDesc] = strSpecValue
-    lstCatergories = []
-    for cat in dictItems["categories"]["category"]["subcategory"]:
-      strCatDesc = Translate(cat["description"])
-      lstCatergories.append(strCatDesc)
-    print("Categories:{}".format(",".join(lstCatergories)))
-    print("Attributes:")
-    for strKey in dictAttributes.keys():
-      print("   {}:{}".format(strKey,dictAttributes[strKey]))
-    dictPictures = {}
-    strPicFileName = dictItems["pictures"]["list"]["picture"]["filename"]
-    strPicURL = dictItems["pictures"]["list"]["picture"]["url"]
-    dictPictures[strPicFileName] = strPicURL
-    strPicFileName = dictItems["pictures"]["gallery"]["picture"]["filename"]
-    strPicURL = dictItems["pictures"]["gallery"]["picture"]["url"]
-    if strPicFileName not in dictPictures:
-      dictPictures[strPicFileName] = strPicURL
-    strPicFileName = dictItems["pictures"]["zoom"]["picture"]["filename"]
-    strPicURL = dictItems["pictures"]["zoom"]["picture"]["url"]
-    if strPicFileName not in dictPictures:
-      dictPictures[strPicFileName] = strPicURL
-    for pic in dictPictures:
-      strPicFileName = CleanString(pic)
-      strPicFileName = strSaveFolder + strPicFileName
-      strPicURL = dictPictures[pic]
-      LogEntry("Downloading picture {}".format(strPicURL))
-      try:
-        WebRequest = requests.get(strPicURL, headers={}, verify=False, timeout=iTimeOut)
-        if isinstance(WebRequest, requests.models.Response) == False:
-          LogEntry("response is unknown type")
-          continue
-        if WebRequest.status_code != 200:
-          LogEntry("Unable to download image: {}".format(strPicURL))
-          continue
-        with open(strPicFileName, "wb") as objFileHndl:
-          objFileHndl.write(WebRequest.content)
-          objFileHndl.close()
-      except Exception as err:
-        LogEntry("Issue with API call. {}".format(err))
+    if isinstance(dictItems, list):
+      for dictItem in dictItems:
+        ProcessItem(dictItem)
+    else:
+      ProcessItem(dictItems)
   else:
     LogEntry("No items found in response")
-
 
   LogEntry("Done!")
   objLogOut.close()
