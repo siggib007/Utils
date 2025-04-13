@@ -233,7 +233,27 @@ def Translate(strText):
   strText = dictResponse["translations"][0]["text"]
   return strText
 
+def FetchPicture(dictPic):
+  global dictPictures
+
+  if not isinstance(dictPic, (dict,list)):
+    return
+  if isinstance(dictPic, list):
+    for pic in dictPic:
+      strPicFileName = CleanString(pic["filename"])
+      strPicURL = pic["url"]
+      if strPicFileName not in dictPictures:
+        dictPictures[strPicFileName] = strPicURL
+  else:
+      strPicFileName = CleanString(dictPic["filename"])
+      strPicURL = dictPic["url"]
+      if strPicFileName not in dictPictures:
+        dictPictures[strPicFileName] = strPicURL
+  return
+
 def ProcessItem(dictItem):
+  global dictPictures
+
   print("ItemID:{}".format(dictItem["@id"]))
   print("MFG:{} MPN:{} EAN:{}".format(dictItem["manufacturer"]["description"], dictItem["manufacturer"]["@id"], dictItem["ean"]))
   print("Short:{}".format(dictItem["description"]["short"]))
@@ -241,7 +261,8 @@ def ProcessItem(dictItem):
   print("Long:{}".format(strLongDesc))
   print("Price:{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"]))
   print("Stock:{}".format(dictItem["stock"]["@quantity"]))
-  print("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
+  if "piecespercarton" in dictItem:
+    print("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
   print("Weight:{} {}".format(dictItem["weight"]["#text"],dictItem["weight"]["@unit"]))
   if "physicaldimensions" in dictItem:
     print("Dimensions: {} {} W x {} {} D x {} {} H".format(
@@ -270,17 +291,9 @@ def ProcessItem(dictItem):
   for strKey in dictAttributes.keys():
     print("   {}:{}".format(strKey,dictAttributes[strKey]))
   dictPictures = {}
-  strPicFileName = dictItem["pictures"]["list"]["picture"]["filename"]
-  strPicURL = dictItem["pictures"]["list"]["picture"]["url"]
-  dictPictures[strPicFileName] = strPicURL
-  strPicFileName = dictItem["pictures"]["gallery"]["picture"]["filename"]
-  strPicURL = dictItem["pictures"]["gallery"]["picture"]["url"]
-  if strPicFileName not in dictPictures:
-    dictPictures[strPicFileName] = strPicURL
-  strPicFileName = dictItem["pictures"]["zoom"]["picture"]["filename"]
-  strPicURL = dictItem["pictures"]["zoom"]["picture"]["url"]
-  if strPicFileName not in dictPictures:
-    dictPictures[strPicFileName] = strPicURL
+  FetchPicture(dictItem["pictures"]["list"]["picture"])
+  FetchPicture(dictItem["pictures"]["gallery"]["picture"])
+  FetchPicture(dictItem["pictures"]["zoom"]["picture"])
   for pic in dictPictures:
     strPicFileName = CleanString(pic)
     strPicFileName = strSaveFolder + strPicFileName
