@@ -18,6 +18,7 @@ import time
 import urllib.parse as urlparse
 import subprocess
 import argparse
+import json
 import xml.parsers.expat
 try:
     import requests
@@ -54,6 +55,8 @@ lstBadChar = ["?", "!", "'", '"', "~", "#", "%", "&", "*", ":", "<", ">", "?", "
               "{", " | ", "}", "$", "!", "@", "+", "=", "`"]
 
 strBaseURL = "https://api.aurdel.com/Prices/getPrice"
+strTranslateURL = "https://api-free.deepl.com/v2/translate"
+iTimeOut = 20  # Connection timeout in seconds
 
 def FetchEnv (strEnvName):
   if os.getenv(strEnvName) != "" and os.getenv(strEnvName) is not None:
@@ -158,11 +161,13 @@ def processConf():
   global strCompID
   global strAPIKey
   global strSaveFolder
+  global strDeeplKey
 
   strCustID = None
   strCompID = None
   strAPIKey = None
   strSaveFolder = ""
+  strDeeplKey = None
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -195,8 +200,44 @@ def processConf():
         strAPIKey = strValue
       if strVarName == "SaveFolder":
         strSaveFolder = strValue
-
+      if strVarName == "DEEPL_AUTH_KEY":
+        strDeeplKey = strValue
   LogEntry ("Done processing configuration, moving on")
+
+def Translate(strText):
+  if strText is None:
+    return ""
+
+  strAuthKey = "DeepL-Auth-Key: " + strDeeplKey
+  strParams = {
+    "text": strText,
+    "target_lang": "EN",
+    "auth_key": strAuthKey
+  }
+  dictHeader = {}
+  dictHeader["Content-Type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Cache-Control"] = "no-cache"
+  dictHeader["Connection"] = "keep-alive"
+  dictHeader["Authorization"] = strAuthKey
+
+  dictPayload = {}
+  dictPayload["target_lang"] = "EN"
+  dictPayload["text"] = strText
+
+  try:
+    WebRequest = requests.post(strTranslateURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader, verify=False)
+  except Exception as err:
+    LogEntry("Issue with API call. {}".format(err))
+    return None
+
+  if isinstance(WebRequest, requests.models.Response) == False:
+    LogEntry("response is unknown type")
+    return None
+
+  dictResponse = json.loads(WebRequest.text)
+  strText = dictResponse["translations"][0]["text"]
+  return strText
 
 def main():
   global objLogOut
@@ -205,6 +246,7 @@ def main():
   global strAPIKey
   global strConf_File
   global strSaveFolder
+  global strDeeplKey
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
 
@@ -256,6 +298,12 @@ def main():
   if strAPIKey == "":
       strAPIKey = None
 
+  if FetchEnv("DEEPL_AUTH_KEY") is not None:
+    strDeeplKey = FetchEnv("DEEPL_AUTH_KEY")
+  if strDeeplKey == "":
+      strDeeplKey = None
+
+
   if args.out is not None:
     strSaveFolder = args.out
   if strSaveFolder == "":
@@ -269,8 +317,8 @@ def main():
     os.makedirs(strSaveFolder)
     LogEntry ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
 
-  if strCustID is None or strCompID is None or strAPIKey is None:
-    LogEntry("Unable to continue, missing customerid, companyid or apikey")
+  if strCustID is None or strCompID is None or strAPIKey is None or strDeeplKey is None:
+    LogEntry("Unable to continue, missing customerid, companyid or one of the apikeys")
     objLogOut.close()
     sys.exit(1)
 
@@ -297,13 +345,24 @@ def main():
 
   dictItems = dictInput["database"]["DELTACO.SE"]["data"]["items"]["item"]
   #LogEntry("File read in, here are top level keys {}".format(dictItems.keys()))
+  print("ItemID:{}".format(dictItems["@id"]))
   print("MFG:{} MPN:{} EAN:{}".format(dictItems["manufacturer"]["description"], dictItems["manufacturer"]["@id"], dictItems["ean"]))
   print("Short:{}".format(dictItems["description"]["short"]))
-  print("Long:{}".format(dictItems["description"]["long"]))
+  strLongDesc = Translate(dictItems["description"]["long"])
+  print("Long:{}".format(strLongDesc))
   print("Price:{} {}".format(dictItems["price"]["net"],dictItems["price"]["@currencycode"]))
   print("Stock:{}".format(dictItems["stock"]["@quantity"]))
   print("Pieces Per Carton:{}".format(dictItems["piecespercarton"]))
-  print("Categories:{}".format(",".join(dictItems["categories"]["category"]["subcategory"])))
+  print("Weight:{} {}".format(dictItems["weight"]["#text"],dictItems["weight"]["@unit"]))
+  print("Dimensions: {} {} W x {} {} D x {} {} H".format(
+     dictItems["physicaldimensions"]["width"]["#text"],
+     dictItems["physicaldimensions"]["width"]["@unit"],
+     dictItems["physicaldimensions"]["depth"]["#text"],
+     dictItems["physicaldimensions"]["depth"]["@unit"],
+     dictItems["physicaldimensions"]["height"]["#text"],
+     dictItems["physicaldimensions"]["height"]["@unit"]
+     ))
+  #print("Categories:{}".format(",".join(dictItems["categories"]["category"]["subcategory"])))
 
 
   LogEntry("Done!")
