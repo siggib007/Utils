@@ -208,7 +208,7 @@ def Translate(strText):
   if strText is None:
     return ""
 
-  strAuthKey = "DeepL-Auth-Key: " + strDeeplKey
+  strAuthKey = "DeepL-Auth-Key " + strDeeplKey
   strParams = {
     "text": strText,
     "target_lang": "EN",
@@ -221,9 +221,11 @@ def Translate(strText):
   dictHeader["Connection"] = "keep-alive"
   dictHeader["Authorization"] = strAuthKey
 
+  lstTexts = []
+  lstTexts.append(strText)
   dictPayload = {}
   dictPayload["target_lang"] = "EN"
-  dictPayload["text"] = strText
+  dictPayload["text"] = lstTexts
 
   try:
     WebRequest = requests.post(strTranslateURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader, verify=False)
@@ -297,12 +299,10 @@ def main():
     strAPIKey = FetchEnv("APIKEY")
   if strAPIKey == "":
       strAPIKey = None
-
   if FetchEnv("DEEPL_AUTH_KEY") is not None:
     strDeeplKey = FetchEnv("DEEPL_AUTH_KEY")
   if strDeeplKey == "":
       strDeeplKey = None
-
 
   if args.out is not None:
     strSaveFolder = args.out
