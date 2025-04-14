@@ -646,7 +646,7 @@ def main():
   objFileOut.write(json.dumps(lstOut, indent=2))
   objFileOut.close()
   LogEntry("Done processing product list file, json saved to {}".format(strOutFile))
-  strOutFile = strSaveFolder + "Aurdel-Order-{}.csv".format(ISO)
+  strOutFile = strSaveFolder + "Aurdel-Order{}.csv".format(ISO)
   with open(strOutFile, mode='w', newline='') as objFileOut:
     objWriter = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
     objWriter.writeheader()
