@@ -49,7 +49,11 @@ lstBadChar = ["?", "!", "'", '"', "~", "#", "%", "&", "*", ":", "<", ">", "?", "
 
 strBaseURL = "https://api.aurdel.com/Prices/getPrice"
 strTranslateURL = "https://api-free.deepl.com/v2/translate"
+strXchangeURL = "https://v1.apiplugin.io/v1/currency/"
 iTimeOut = 20  # Connection timeout in seconds
+iMinQuiet = 5  # Minimum time in seconds between API calls
+tLastCall = 0
+iTotalSleep = 0
 
 def FetchEnv (strEnvName):
   if os.getenv(strEnvName) != "" and os.getenv(strEnvName) is not None:
@@ -144,10 +148,25 @@ def FetchXML (strItemID):
 
   return WebRequest.content
 
-def LogEntry(strMsg):
-	strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
-	objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
-	print(strMsg)
+def LogEntry(strMsg, iLogLevel=1):
+  global iVerbose
+  if iLogLevel > iVerbose:
+    return
+  if strMsg is None:
+    return
+  if objLogOut is None:
+    print("Log file not open")
+    return
+  if objLogOut.closed == True:
+    print("Log file closed")
+    return
+  if strMsg == "":
+    return
+
+  # Write to log file and console
+  strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
+  objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
+  print(strMsg)
 
 def processConf():
   global strCustID
@@ -155,12 +174,16 @@ def processConf():
   global strAPIKey
   global strSaveFolder
   global strDeeplKey
+  global strXchangeAPIKey
+  global strXchangeAppID
 
   strCustID = None
   strCompID = None
   strAPIKey = None
   strSaveFolder = ""
   strDeeplKey = None
+  strXchangeAPIKey = None
+  strXchangeAppID = None
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -195,18 +218,80 @@ def processConf():
         strSaveFolder = strValue
       if strVarName == "DEEPL_AUTH_KEY":
         strDeeplKey = strValue
+      if strVarName == "XCHANGE_API_KEY":
+        strXchangeAPIKey = strValue
+      if strVarName == "XCHANGE_APPID":
+        strXchangeAppID = strValue
   LogEntry ("Done processing configuration, moving on")
 
+def FetchXchange(strBaseCurrency, strTargetCurrency):
+
+  strAuthKey="Bearer " + strXchangeAPIKey
+  dictHeader = {}
+  dictHeader["Content-Type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Cache-Control"] = "no-cache"
+  dictHeader["Connection"] = "keep-alive"
+  dictHeader["Authorization"] = strAuthKey
+
+  dictParams = {}
+  dictParams["source"] = strBaseCurrency
+  dictParams["target"] = strTargetCurrency
+  strParams = urlparse.urlencode(dictParams)
+  strURL = strXchangeURL + strXchangeAppID + "/rates?" + strParams
+
+  try:
+    WebRequest = requests.get(strURL, headers=dictHeader, verify=False, timeout=iTimeOut)
+  except Exception as err:
+    LogEntry("Issue with API call. {}".format(err))
+    return 0
+
+  if isinstance(WebRequest, requests.models.Response) == False:
+    LogEntry("response is unknown type")
+    return 0
+
+  if WebRequest.status_code != 200:
+    LogEntry("Failed to get a exchange rate. Status code: {}".format(WebRequest.status_code))
+    return 0
+  if WebRequest.text is None:
+    LogEntry("Response from exchange rate API is None")
+    return 0
+  dictResponse = json.loads(WebRequest.text)
+  if "rates" not in dictResponse:
+    LogEntry("No rates in response. Here is the response: {}".format(dictResponse))
+    return 0
+  if len(dictResponse["rates"]) == 0:
+    LogEntry("Rates in response is zero length")
+    return 0
+  if isinstance(dictResponse["rates"], dict) == False:
+    LogEntry("rates is not a dict")
+    return 0
+
+  return dictResponse["rates"]
+
 def Translate(strText):
+  global tLastCall
+  global iTotalSleep
+  global iStatusCode
+
   if strText is None:
     return ""
 
+  fTemp = time.time()
+  fDelta = fTemp - tLastCall
+  LogEntry("It's been {} seconds since last API call".format(fDelta),3)
+  if fDelta > iMinQuiet:
+      tLastCall = time.time()
+  else:
+      iDelta = int(fDelta)
+      iAddWait = iMinQuiet - iDelta
+      LogEntry("It has been less than {} seconds since last API call, "
+                "waiting {} seconds".format(iMinQuiet, iAddWait),3)
+      iTotalSleep += iAddWait
+      time.sleep(iAddWait)
+
   strAuthKey = "DeepL-Auth-Key " + strDeeplKey
-  strParams = {
-    "text": strText,
-    "target_lang": "EN",
-    "auth_key": strAuthKey
-  }
+
   dictHeader = {}
   dictHeader["Content-Type"] = "application/json"
   dictHeader["Accept"] = "application/json"
@@ -379,6 +464,10 @@ def main():
   global strConf_File
   global strSaveFolder
   global strDeeplKey
+  global iVerbose
+  global strXchangeAPIKey
+  global strXchangeAppID
+
   lstOut = []
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
@@ -413,8 +502,10 @@ def main():
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
   objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
   objParser.add_argument("-i", "--input", type=str, help="List of part numbers to process")
+  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
   args = objParser.parse_args()
   strConf_File = args.config
+  iVerbose = args.verbosity
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
@@ -432,6 +523,10 @@ def main():
       strAPIKey = None
   if FetchEnv("DEEPL_AUTH_KEY") is not None:
     strDeeplKey = FetchEnv("DEEPL_AUTH_KEY")
+  if FetchEnv("XCHANGE_API_KEY") is not None:
+    strXchangeAPIKey = FetchEnv("XCHANGE_API_KEY")
+  if FetchEnv("XCHANGE_APPID") is not None:
+    strXchangeAppID = FetchEnv("XCHANGE_APPID")
   if strDeeplKey == "":
       strDeeplKey = None
 
@@ -448,15 +543,27 @@ def main():
     os.makedirs(strSaveFolder)
     LogEntry ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
 
-  if strCustID is None or strCompID is None or strAPIKey is None or strDeeplKey is None:
+  if strCustID is None or strCompID is None or strAPIKey is None or strDeeplKey is None or strXchangeAPIKey is None or strXchangeAppID is None:
     LogEntry("Unable to continue, missing customerid, companyid or one of the apikeys")
     objLogOut.close()
     sys.exit(1)
 
+  dictXchange = FetchXchange("EUR", "ISK")
+  if "ISK" in dictXchange:
+    LogEntry("ISK exchange rate: {}".format(dictXchange["ISK"]))
+  else:
+    LogEntry("Unable to get exchange rate for ISK")
+    objLogOut.close()
+    sys.exit(1)
   if args.input is None:
      strInput = getInput("Please enter part number to process: ")
   else:
       strInput = args.input.strip()
+
+  if strInput == "":
+    LogEntry("Nothing to process, exiting")
+    objLogOut.close()
+    sys.exit(1)
 
   strXML = FetchXML(strInput)
   try:
