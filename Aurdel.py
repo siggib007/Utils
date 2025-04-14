@@ -230,7 +230,31 @@ def Translate(strText):
     LogEntry("response is unknown type")
     return None
 
+  if WebRequest.status_code != 200:
+    LogEntry("Failed to get a translation. Status code: {}".format(WebRequest.status_code))
+    return strText
+  if WebRequest.text is None:
+    LogEntry("No response from translation API")
+    return strText
   dictResponse = json.loads(WebRequest.text)
+  if "translations" not in dictResponse:
+    LogEntry("No translations in response. Here is the response: {}".format(dictResponse))
+    return strText
+  if len(dictResponse["translations"]) == 0:
+    LogEntry("Translations in response is zero length")
+    return strText
+  if isinstance(dictResponse["translations"], list) == False:
+    LogEntry("Translations is not a list")
+    return strText
+  if "text" not in dictResponse["translations"][0]:
+    LogEntry("No text in first item in translation response")
+    return strText
+  if dictResponse["translations"][0]["text"] is None:
+    LogEntry("text element in translation response is None")
+    return strText
+  if dictResponse["translations"][0]["text"] == "":
+    LogEntry("Text in translation response is empty")
+    return strText
   strText = dictResponse["translations"][0]["text"]
   return strText
 
