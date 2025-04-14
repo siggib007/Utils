@@ -166,6 +166,7 @@ def LogEntry(strMsg, iLogLevel=0):
   # Write to log file and console
   strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
   objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
+  objLogOut.flush()
   print(strMsg)
 
 def isInt(CheckValue):
