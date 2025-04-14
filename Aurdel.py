@@ -398,7 +398,7 @@ def ProcessItem(dictItem):
   dictOut["EAN"] = "" if dictItem["ean"] is None else "'" + dictItem["ean"]
   dictOut["Manufacturer"] = dictItem["manufacturer"]["description"]
   dictOut["SKU"] = dictItem["manufacturer"]["@id"]
-  dictOut["Short description"] = dictItem["description"]["short"]
+  dictOut["Short description"] = Translate(dictItem["description"]["short"])
   LogEntry("MFG:{} MPN:{} EAN:{}".format(dictItem["manufacturer"]["description"], dictItem["manufacturer"]["@id"], dictItem["ean"]))
   LogEntry("Short:{}".format(dictItem["description"]["short"]))
   strLongDesc = Translate(dictItem["description"]["long"])
@@ -452,7 +452,7 @@ def ProcessItem(dictItem):
       strCatDesc = strCatDesc.replace(" ＆ "," & ")
       lstCatergories.append(strCatDesc)
   else:
-    strCatDesc = Translate(dictItem["categories"]["category"]["subcategory"]["description"])
+    strCatDesc = Translate(dictItem["categories"]["category"]["subcategory"]["description"]).replace(" ＆ "," & ")
     lstCatergories.append(strCatDesc)
   LogEntry("Categories:{}".format(",".join(lstCatergories)))
   dictOut["Categories"] = ",".join(lstCatergories)
@@ -646,7 +646,7 @@ def main():
   objFileOut.close()
   LogEntry("Done processing product list file, json saved to {}".format(strOutFile))
   strOutFile = strSaveFolder + "Aurdel-Order-{}.csv".format(ISO)
-  with open(strOutFile, mode='w', newline='', encoding='utf-8') as objFileOut:
+  with open(strOutFile, mode='w', newline='') as objFileOut:
     objWriter = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
     objWriter.writeheader()
     for objRow in lstOut:
