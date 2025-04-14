@@ -393,8 +393,8 @@ def ProcessItem(dictItem):
   global dictPictures
 
   dictOut = {}
-  LogEntry("ItemID:{}".format(dictItem["@id"]))
-  dictOut["ItemID"] = dictItem["@id"]
+  LogEntry("Aurdel ItemID:{}".format(dictItem["@id"]))
+  dictOut["Aurdel ItemID"] = dictItem["@id"]
   dictOut["EAN"] = dictItem["ean"]
   dictOut["Manufacturer"] = dictItem["manufacturer"]["description"]
   dictOut["SKU"] = dictItem["manufacturer"]["@id"]
@@ -410,14 +410,14 @@ def ProcessItem(dictItem):
   strPrice = dictItem["price"]["net"]
   fPrice = float(strPrice.replace(",", "."))
   dictOut[strLabel] = fPrice
-  fPriceISK = fPrice * fXchange
+  fPriceISK = round(fPrice * fXchange, 2)
   dictOut["Purchase Price ISK"] = fPriceISK
   LogEntry("Purchase Price ISK: {}".format(dictOut["Purchase Price ISK"]))
   dictOut["Regular price"] = round(fPriceISK * (1 + (iMarkup / 100)), 2)
   LogEntry("Retail Price: {}".format(dictOut["Regular price"]))
 
-  LogEntry("Stock:{}".format(dictItem["stock"]["@quantity"]))
-  dictOut["Stock"] = dictItem["stock"]["@quantity"]
+  LogEntry("Aurdel Stock:{}".format(dictItem["stock"]["@quantity"]))
+  dictOut["Aurdel Stock"] = dictItem["stock"]["@quantity"]
   if "piecespercarton" in dictItem:
     LogEntry("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
     dictOut["PiecesPerCarton"] = dictItem["piecespercarton"]
@@ -598,6 +598,7 @@ def main():
     LogEntry("Unable to get exchange rate for ISK")
     objLogOut.close()
     sys.exit(1)
+  LogEntry("Markup is set to {}%".format(iMarkup))
   if args.input is None:
      strInput = getInput("Please enter part number to process: ")
   else:
