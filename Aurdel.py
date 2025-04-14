@@ -395,7 +395,7 @@ def ProcessItem(dictItem):
   dictOut = {}
   LogEntry("Aurdel ItemID:{}".format(dictItem["@id"]))
   dictOut["Aurdel ItemID"] = dictItem["@id"]
-  dictOut["EAN"] = dictItem["ean"]
+  dictOut["EAN"] = "'" + dictItem["ean"]
   dictOut["Manufacturer"] = dictItem["manufacturer"]["description"]
   dictOut["SKU"] = dictItem["manufacturer"]["@id"]
   dictOut["Short description"] = dictItem["description"]["short"]
@@ -420,7 +420,7 @@ def ProcessItem(dictItem):
   dictOut["Aurdel Stock"] = dictItem["stock"]["@quantity"]
   if "piecespercarton" in dictItem:
     LogEntry("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
-    dictOut["PiecesPerCarton"] = dictItem["piecespercarton"]
+    dictOut["Pieces Per Carton"] = dictItem["piecespercarton"]
   LogEntry("Weight:{} {}".format(dictItem["weight"]["#text"],dictItem["weight"]["@unit"]))
   strWeightName = "Weight ({})".format(dictItem["weight"]["@unit"])
   dictOut[strWeightName] = dictItem["weight"]["#text"]
@@ -449,6 +449,7 @@ def ProcessItem(dictItem):
   if isinstance(dictItem["categories"]["category"]["subcategory"], list):
     for cat in dictItem["categories"]["category"]["subcategory"]:
       strCatDesc = Translate(cat["description"])
+      strCatDesc = strCatDesc.replace(" ＆ "," & ")
       lstCatergories.append(strCatDesc)
   else:
     strCatDesc = Translate(dictItem["categories"]["category"]["subcategory"]["description"])
