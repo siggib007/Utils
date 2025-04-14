@@ -148,7 +148,7 @@ def FetchXML (strItemID):
 
   return WebRequest.content
 
-def LogEntry(strMsg, iLogLevel=1):
+def LogEntry(strMsg, iLogLevel=0):
   global iVerbose
   if iLogLevel > iVerbose:
     return
@@ -176,6 +176,7 @@ def processConf():
   global strDeeplKey
   global strXchangeAPIKey
   global strXchangeAppID
+  global iMarkup
 
   strCustID = None
   strCompID = None
@@ -184,6 +185,8 @@ def processConf():
   strDeeplKey = None
   strXchangeAPIKey = None
   strXchangeAppID = None
+  iMarkup = 0
+
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -222,6 +225,9 @@ def processConf():
         strXchangeAPIKey = strValue
       if strVarName == "XCHANGE_APPID":
         strXchangeAppID = strValue
+      if strVarName == "Markup":
+        iMarkup = strValue
+
   LogEntry ("Done processing configuration, moving on")
 
 def FetchXchange(strBaseCurrency, strTargetCurrency):
@@ -379,7 +385,13 @@ def ProcessItem(dictItem):
   strPrice = "{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"])
   LogEntry("Price: {}".format(strPrice))
   strLabel = "Price ({})".format(dictItem["price"]["@currencycode"])
-  dictOut[strLabel] = dictItem["price"]["net"]
+  fPrice = float(dictItem["price"]["net"])
+  dictOut[strLabel] = fPrice
+  dictOut["Purchase Price ISK"] = fPrice * fXchange
+  LogEntry("Purchase Price ISK: {}".format(dictOut["Purchase Price ISK"]))
+  dictOut["Regular price"] = fPrice * (1 + (iMarkup / 100))
+  LogEntry("Retail Price: {}".format(dictOut["Regular price"]))
+
   LogEntry("Stock:{}".format(dictItem["stock"]["@quantity"]))
   dictOut["Stock"] = dictItem["stock"]["@quantity"]
   if "piecespercarton" in dictItem:
@@ -467,6 +479,8 @@ def main():
   global iVerbose
   global strXchangeAPIKey
   global strXchangeAppID
+  global fXchange
+  global iMarkup
 
   lstOut = []
 
@@ -500,8 +514,9 @@ def main():
   strDefConf = sys.argv[0][:iLoc] + ".ini"
   objParser = argparse.ArgumentParser(description="Script to fetch details on particulat part number")
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
-  objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
+  objParser.add_argument("-o", "--out", type=str, help="Path to store output files")
   objParser.add_argument("-i", "--input", type=str, help="List of part numbers to process")
+  objParser.add_argument("-m", "--markup", type=int, help="How much markup to use, overwrites config file")
   objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
   args = objParser.parse_args()
   strConf_File = args.config
@@ -530,6 +545,8 @@ def main():
   if strDeeplKey == "":
       strDeeplKey = None
 
+  if args.markup is not None:
+    iMarkup = args.markup
   if args.out is not None:
     strSaveFolder = args.out
   if strSaveFolder == "":
@@ -550,7 +567,9 @@ def main():
 
   dictXchange = FetchXchange("EUR", "ISK")
   if "ISK" in dictXchange:
-    LogEntry("ISK exchange rate: {}".format(dictXchange["ISK"]))
+    LogEntry("EUR to ISK exchange rate: {}".format(dictXchange["ISK"]))
+    fXchange = float(dictXchange["ISK"])
+    fXchange = round(fXchange, 2)
   else:
     LogEntry("Unable to get exchange rate for ISK")
     objLogOut.close()
