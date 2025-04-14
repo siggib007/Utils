@@ -423,20 +423,20 @@ def ProcessItem(dictItem):
     dictOut["Pieces Per Carton"] = dictItem["piecespercarton"]
   LogEntry("Weight:{} {}".format(dictItem["weight"]["#text"],dictItem["weight"]["@unit"]))
   strWeightName = "Weight ({})".format(dictItem["weight"]["@unit"])
-  dictOut[strWeightName] = dictItem["weight"]["#text"]
+  dictOut[strWeightName] = dictItem["weight"]["#text"].replace(",",".")
   if "physicaldimensions" in dictItem:
     strLabel = "Width ({})".format(dictItem["physicaldimensions"]["width"]["@unit"])
-    dictOut[strLabel] = dictItem["physicaldimensions"]["width"]["#text"]
+    dictOut[strLabel] = dictItem["physicaldimensions"]["width"]["#text"].replace(",",".")
     strLabel = "Depth ({})".format(dictItem["physicaldimensions"]["depth"]["@unit"])
-    dictOut[strLabel] = dictItem["physicaldimensions"]["depth"]["#text"]
+    dictOut[strLabel] = dictItem["physicaldimensions"]["depth"]["#text"].replace(",",".")
     strLabel = "Height ({})".format(dictItem["physicaldimensions"]["height"]["@unit"])
-    dictOut[strLabel] = dictItem["physicaldimensions"]["height"]["#text"]
+    dictOut[strLabel] = dictItem["physicaldimensions"]["height"]["#text"].replace(",",".")
     LogEntry("Dimensions: {} {} W x {} {} D x {} {} H".format(
-      dictItem["physicaldimensions"]["width"]["#text"],
+      dictItem["physicaldimensions"]["width"]["#text"].replace(",","."),
       dictItem["physicaldimensions"]["width"]["@unit"],
-      dictItem["physicaldimensions"]["depth"]["#text"],
+      dictItem["physicaldimensions"]["depth"]["#text"].replace(",","."),
       dictItem["physicaldimensions"]["depth"]["@unit"],
-      dictItem["physicaldimensions"]["height"]["#text"],
+      dictItem["physicaldimensions"]["height"]["#text"].replace(",","."),
       dictItem["physicaldimensions"]["height"]["@unit"]
       ))
   dictAttributes = {}
