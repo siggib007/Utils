@@ -395,7 +395,7 @@ def ProcessItem(dictItem):
   dictOut = {}
   LogEntry("Aurdel ItemID:{}".format(dictItem["@id"]))
   dictOut["Aurdel ItemID"] = dictItem["@id"]
-  dictOut["EAN"] = "" if dictOut["EAN"] is None else "'" + dictItem["ean"]
+  dictOut["EAN"] = "" if dictItem["ean"] is None else "'" + dictItem["ean"]
   dictOut["Manufacturer"] = dictItem["manufacturer"]["description"]
   dictOut["SKU"] = dictItem["manufacturer"]["@id"]
   dictOut["Short description"] = dictItem["description"]["short"]
