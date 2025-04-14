@@ -338,11 +338,11 @@ def Translate(strText):
     WebRequest = requests.post(strTranslateURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader, verify=False)
   except Exception as err:
     LogEntry("Issue with API call. {}".format(err))
-    return None
+    return strText
 
   if isinstance(WebRequest, requests.models.Response) == False:
     LogEntry("response is unknown type")
-    return None
+    return strText
 
   if WebRequest.status_code != 200:
     LogEntry("Failed to get a translation. Status code: {}".format(WebRequest.status_code))
