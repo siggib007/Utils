@@ -168,6 +168,23 @@ def LogEntry(strMsg, iLogLevel=0):
   objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
   print(strMsg)
 
+def isInt(CheckValue):
+    """
+    function to safely check if a value can be interpreded as an int
+    Parameter:
+      Value: A object to be evaluated
+    Returns:
+      Boolean indicating if the object is an integer or not.
+    """
+    if isinstance(CheckValue, (float, int, str)):
+        try:
+            fTemp = int(CheckValue)
+        except ValueError:
+            fTemp = "NULL"
+    else:
+        fTemp = "NULL"
+    return fTemp != "NULL"
+
 def processConf():
   global strCustID
   global strCompID
@@ -226,7 +243,12 @@ def processConf():
       if strVarName == "XCHANGE_APPID":
         strXchangeAppID = strValue
       if strVarName == "Markup":
-        iMarkup = strValue
+        strMarkup = strValue
+        if isInt(strMarkup):
+          iMarkup = int(strMarkup)
+        else:
+          LogEntry ("Markup value {} is not an integer".format(strMarkup))
+          iMarkup = 0
 
   LogEntry ("Done processing configuration, moving on")
 
@@ -382,10 +404,11 @@ def ProcessItem(dictItem):
   strLongDesc = Translate(dictItem["description"]["long"])
   dictOut["Description"] = strLongDesc
   LogEntry("Long:{}".format(strLongDesc))
-  strPrice = "{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"])
-  LogEntry("Price: {}".format(strPrice))
+  strCurrencyPrice = "{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"])
+  LogEntry("Price: {}".format(strCurrencyPrice))
   strLabel = "Price ({})".format(dictItem["price"]["@currencycode"])
-  fPrice = float(dictItem["price"]["net"])
+  strPrice = dictItem["price"]["net"]
+  fPrice = float(strPrice.replace(",", "."))
   dictOut[strLabel] = fPrice
   dictOut["Purchase Price ISK"] = fPrice * fXchange
   LogEntry("Purchase Price ISK: {}".format(dictOut["Purchase Price ISK"]))
