@@ -18,6 +18,7 @@ import time
 import urllib.parse as urlparse
 import subprocess
 import argparse
+import csv
 import json
 import xml.parsers.expat
 try:
@@ -254,18 +255,38 @@ def FetchPicture(dictPic):
 def ProcessItem(dictItem):
   global dictPictures
 
-  print("ItemID:{}".format(dictItem["@id"]))
-  print("MFG:{} MPN:{} EAN:{}".format(dictItem["manufacturer"]["description"], dictItem["manufacturer"]["@id"], dictItem["ean"]))
-  print("Short:{}".format(dictItem["description"]["short"]))
+  dictOut = {}
+  LogEntry("ItemID:{}".format(dictItem["@id"]))
+  dictOut["ItemID"] = dictItem["@id"]
+  dictOut["EAN"] = dictItem["ean"]
+  dictOut["Manufacturer"] = dictItem["manufacturer"]["description"]
+  dictOut["SKU"] = dictItem["manufacturer"]["@id"]
+  dictOut["Short description"] = dictItem["description"]["short"]
+  LogEntry("MFG:{} MPN:{} EAN:{}".format(dictItem["manufacturer"]["description"], dictItem["manufacturer"]["@id"], dictItem["ean"]))
+  LogEntry("Short:{}".format(dictItem["description"]["short"]))
   strLongDesc = Translate(dictItem["description"]["long"])
-  print("Long:{}".format(strLongDesc))
-  print("Price:{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"]))
-  print("Stock:{}".format(dictItem["stock"]["@quantity"]))
+  dictOut["Description"] = strLongDesc
+  LogEntry("Long:{}".format(strLongDesc))
+  strPrice = "{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"])
+  LogEntry("Price: {}".format(strPrice))
+  strLabel = "Price ({})".format(dictItem["price"]["@currencycode"])
+  dictOut[strLabel] = dictItem["price"]["net"]
+  LogEntry("Stock:{}".format(dictItem["stock"]["@quantity"]))
+  dictOut["Stock"] = dictItem["stock"]["@quantity"]
   if "piecespercarton" in dictItem:
-    print("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
-  print("Weight:{} {}".format(dictItem["weight"]["#text"],dictItem["weight"]["@unit"]))
+    LogEntry("Pieces Per Carton:{}".format(dictItem["piecespercarton"]))
+    dictOut["PiecesPerCarton"] = dictItem["piecespercarton"]
+  LogEntry("Weight:{} {}".format(dictItem["weight"]["#text"],dictItem["weight"]["@unit"]))
+  strWeightName = "Weight ({})".format(dictItem["weight"]["@unit"])
+  dictOut[strWeightName] = dictItem["weight"]["#text"]
   if "physicaldimensions" in dictItem:
-    print("Dimensions: {} {} W x {} {} D x {} {} H".format(
+    strLabel = "Width ({})".format(dictItem["physicaldimensions"]["width"]["@unit"])
+    dictOut[strLabel] = dictItem["physicaldimensions"]["width"]["#text"]
+    strLabel = "Depth ({})".format(dictItem["physicaldimensions"]["depth"]["@unit"])
+    dictOut[strLabel] = dictItem["physicaldimensions"]["depth"]["#text"]
+    strLabel = "Height ({})".format(dictItem["physicaldimensions"]["height"]["@unit"])
+    dictOut[strLabel] = dictItem["physicaldimensions"]["height"]["#text"]
+    LogEntry("Dimensions: {} {} W x {} {} D x {} {} H".format(
       dictItem["physicaldimensions"]["width"]["#text"],
       dictItem["physicaldimensions"]["width"]["@unit"],
       dictItem["physicaldimensions"]["depth"]["#text"],
@@ -287,16 +308,17 @@ def ProcessItem(dictItem):
   else:
     strCatDesc = Translate(dictItem["categories"]["category"]["subcategory"]["description"])
     lstCatergories.append(strCatDesc)
-  print("Categories:{}".format(",".join(lstCatergories)))
-  print("Attributes:")
-  for strKey in dictAttributes.keys():
-    print("   {}:{}".format(strKey,dictAttributes[strKey]))
+  LogEntry("Categories:{}".format(",".join(lstCatergories)))
+  dictOut["Categories"] = ",".join(lstCatergories)
+
   dictPictures = {}
   FetchPicture(dictItem["pictures"]["list"]["picture"])
   FetchPicture(dictItem["pictures"]["gallery"]["picture"])
   FetchPicture(dictItem["pictures"]["zoom"]["picture"])
+  lstPixNames = []
   for pic in dictPictures:
     strPicFileName = CleanString(pic)
+    lstPixNames.append(strPicFileName)
     strPicFileName = strSaveFolder + strPicFileName
     strPicURL = dictPictures[pic]
     LogEntry("Downloading picture {} to {}".format(strPicURL,strPicFileName))
@@ -313,6 +335,17 @@ def ProcessItem(dictItem):
         objFileHndl.close()
     except Exception as err:
       LogEntry("Issue with API call. {}".format(err))
+  dictOut["Images"] = ",".join(lstPixNames)
+  iAttrCount = 1
+  LogEntry("Attributes:")
+  for strKey in dictAttributes.keys():
+    LogEntry("   {}:{}".format(strKey,dictAttributes[strKey]))
+    dictOut["Attribute {} name".format(iAttrCount)] = strKey
+    dictOut["Attribute {} value(s)".format(iAttrCount)] = dictAttributes[strKey]
+    dictOut["Attribute {} visible".format(iAttrCount)] = "1"
+    dictOut["Attribute {} global".format(iAttrCount)] = "1"
+    iAttrCount += 1
+  return dictOut
 
 def main():
   global objLogOut
@@ -322,6 +355,7 @@ def main():
   global strConf_File
   global strSaveFolder
   global strDeeplKey
+  lstOut = []
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
 
@@ -342,7 +376,7 @@ def main():
 
   if not os.path.exists (strLogDir) :
     os.makedirs(strLogDir)
-    print("\nPath '{0}' for log files didn't exists, so I create it!\n".format(strLogDir))
+    LogEntry("\nPath '{0}' for log files didn't exists, so I create it!\n".format(strLogDir))
 
   strScriptName = os.path.basename(sys.argv[0])
   iLoc = strScriptName.rfind(".")
@@ -418,11 +452,31 @@ def main():
     dictItems = dictInput["database"]["DELTACO.SE"]["data"]["items"]["item"]
     if isinstance(dictItems, list):
       for dictItem in dictItems:
-        ProcessItem(dictItem)
+        dictOut = ProcessItem(dictItem)
+        lstOut.append(dictOut)
     else:
-      ProcessItem(dictItems)
+      dictOut = ProcessItem(dictItems)
+      lstOut.append(dictOut)
   else:
     LogEntry("No items found in response")
+
+  lstFieldNames = lstOut[0].keys() if lstOut else []
+  for objRow in lstOut:
+    if len(objRow.keys()) > len(lstFieldNames):
+      lstFieldNames = objRow.keys()
+  strOutFile = strSaveFolder + "Aurdel-Order-{}.json".format(ISO)
+  objFileOut = GetFileHandle(strOutFile, "w")
+  objFileOut.write(json.dumps(lstOut, indent=2))
+  objFileOut.close()
+  LogEntry("Done processing product list file, json saved to {}".format(strOutFile))
+  strOutFile = strSaveFolder + "Aurdel-Order-{}.csv".format(ISO)
+  with open(strOutFile, mode='w', newline='', encoding='utf-8') as objFileOut:
+    objWriter = csv.DictWriter(objFileOut, fieldnames=lstFieldNames)
+    objWriter.writeheader()
+    for objRow in lstOut:
+        objWriter.writerow(objRow)
+
+  LogEntry("CSV output saved to {}".format(strOutFile))
 
   LogEntry("Done!")
   objLogOut.close()
