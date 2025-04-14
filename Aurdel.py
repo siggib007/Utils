@@ -139,11 +139,11 @@ def FetchXML (strItemID):
   try:
     WebRequest = requests.get(strURL, headers={}, verify=False)
   except Exception as err:
-    LogEntry("Issue with API call. {}".format(err))
+    LogEntry("Issue with Aurdel API: {}".format(err))
     return None
 
   if isinstance(WebRequest, requests.models.Response) == False:
-    LogEntry("response is unknown type")
+    LogEntry("Issue with Aurdel API: response is unknown type")
     return None
 
   return WebRequest.content
@@ -272,28 +272,28 @@ def FetchXchange(strBaseCurrency, strTargetCurrency):
   try:
     WebRequest = requests.get(strURL, headers=dictHeader, verify=False, timeout=iTimeOut)
   except Exception as err:
-    LogEntry("Issue with API call. {}".format(err))
+    LogEntry("Issue with exchange rate API call. {}".format(err))
     return 0
 
   if isinstance(WebRequest, requests.models.Response) == False:
-    LogEntry("response is unknown type")
+    LogEntry("Issue with exchange rate API: response is unknown type")
     return 0
 
   if WebRequest.status_code != 200:
-    LogEntry("Failed to get a exchange rate. Status code: {}".format(WebRequest.status_code))
+    LogEntry("Issue with exchange rate API: Failed to get a exchange rate. Status code: {}".format(WebRequest.status_code))
     return 0
   if WebRequest.text is None:
-    LogEntry("Response from exchange rate API is None")
+    LogEntry("Issue with exchange rate API: Response from exchange rate API is None")
     return 0
   dictResponse = json.loads(WebRequest.text)
   if "rates" not in dictResponse:
-    LogEntry("No rates in response. Here is the response: {}".format(dictResponse))
+    LogEntry("Issue with exchange rate API: No rates in response. Here is the response: {}".format(dictResponse))
     return 0
   if len(dictResponse["rates"]) == 0:
-    LogEntry("Rates in response is zero length")
+    LogEntry("Issue with exchange rate API: Rates in response is zero length")
     return 0
   if isinstance(dictResponse["rates"], dict) == False:
-    LogEntry("rates is not a dict")
+    LogEntry("Issue with exchange rate API: rates is not a dict")
     return 0
 
   return dictResponse["rates"]
@@ -337,37 +337,37 @@ def Translate(strText):
   try:
     WebRequest = requests.post(strTranslateURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader, verify=False)
   except Exception as err:
-    LogEntry("Issue with API call. {}".format(err))
+    LogEntry("Issue with Translate API call. {}".format(err))
     return strText
 
   if isinstance(WebRequest, requests.models.Response) == False:
-    LogEntry("response is unknown type")
+    LogEntry("Issue with Translate API: response is unknown type")
     return strText
 
   if WebRequest.status_code != 200:
-    LogEntry("Failed to get a translation. Status code: {}".format(WebRequest.status_code))
+    LogEntry("Issue with Translate API: Failed to get a translation. Status code: {}".format(WebRequest.status_code))
     return strText
   if WebRequest.text is None:
-    LogEntry("No response from translation API")
+    LogEntry("Issue with Translate API: No response from translation API")
     return strText
   dictResponse = json.loads(WebRequest.text)
   if "translations" not in dictResponse:
-    LogEntry("No translations in response. Here is the response: {}".format(dictResponse))
+    LogEntry("Issue with Translate API: No translations in response. Here is the response: {}".format(dictResponse))
     return strText
   if len(dictResponse["translations"]) == 0:
-    LogEntry("Translations in response is zero length")
+    LogEntry("Issue with Translate API: Translations in response is zero length")
     return strText
   if isinstance(dictResponse["translations"], list) == False:
-    LogEntry("Translations is not a list")
+    LogEntry("Issue with Translate API: Translations is not a list")
     return strText
   if "text" not in dictResponse["translations"][0]:
-    LogEntry("No text in first item in translation response")
+    LogEntry("Issue with Translate API: No text in first item in translation response")
     return strText
   if dictResponse["translations"][0]["text"] is None:
-    LogEntry("text element in translation response is None")
+    LogEntry("Issue with Translate API: text element in translation response is None")
     return strText
   if dictResponse["translations"][0]["text"] == "":
-    LogEntry("Text in translation response is empty")
+    LogEntry("Issue with Translate API: Text in translation response is empty")
     return strText
   strText = dictResponse["translations"][0]["text"]
   return strText
@@ -472,16 +472,16 @@ def ProcessItem(dictItem):
     try:
       WebRequest = requests.get(strPicURL, headers={}, verify=False, timeout=iTimeOut)
       if isinstance(WebRequest, requests.models.Response) == False:
-        LogEntry("response is unknown type")
+        LogEntry("Issue with downloading picture: response is unknown type")
         continue
       if WebRequest.status_code != 200:
-        LogEntry("Unable to download image: {}".format(strPicURL))
+        LogEntry("Issue with downloading picture: Unable to download image: {}".format(strPicURL))
         continue
       with open(strPicFileName, "wb") as objFileHndl:
         objFileHndl.write(WebRequest.content)
         objFileHndl.close()
     except Exception as err:
-      LogEntry("Issue with API call. {}".format(err))
+      LogEntry("Issue with downloading picture: Issue with API call. {}".format(err))
   dictOut["Images"] = ",".join(lstPixNames)
   iAttrCount = 1
   LogEntry("Attributes:")
