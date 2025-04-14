@@ -405,14 +405,15 @@ def ProcessItem(dictItem):
   dictOut["Description"] = strLongDesc
   LogEntry("Long:{}".format(strLongDesc))
   strCurrencyPrice = "{} {}".format(dictItem["price"]["net"],dictItem["price"]["@currencycode"])
-  LogEntry("Price: {}".format(strCurrencyPrice))
+  LogEntry("Price: {}".format(strCurrencyPrice.replace(",", ".")))
   strLabel = "Price ({})".format(dictItem["price"]["@currencycode"])
   strPrice = dictItem["price"]["net"]
   fPrice = float(strPrice.replace(",", "."))
   dictOut[strLabel] = fPrice
-  dictOut["Purchase Price ISK"] = fPrice * fXchange
+  fPriceISK = fPrice * fXchange
+  dictOut["Purchase Price ISK"] = fPriceISK
   LogEntry("Purchase Price ISK: {}".format(dictOut["Purchase Price ISK"]))
-  dictOut["Regular price"] = fPrice * (1 + (iMarkup / 100))
+  dictOut["Regular price"] = round(fPriceISK * (1 + (iMarkup / 100)), 2)
   LogEntry("Retail Price: {}".format(dictOut["Regular price"]))
 
   LogEntry("Stock:{}".format(dictItem["stock"]["@quantity"]))
