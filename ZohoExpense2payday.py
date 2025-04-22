@@ -144,14 +144,14 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
 
   fTemp = time.time()
   fDelta = fTemp - tLastCall
-  LogEntry("It's been {} seconds since last API call".format(fDelta), 7)
+  LogEntry("It's been {} seconds since last API call".format(fDelta), 4)
   if fDelta > iMinQuiet:
     tLastCall = time.time()
   else:
     iDelta = int(fDelta)
     iAddWait = iMinQuiet - iDelta
     LogEntry("It has been less than {} seconds since last API call, "
-              "waiting {} seconds".format(iMinQuiet, iAddWait), 7)
+              "waiting {} seconds".format(iMinQuiet, iAddWait), 4)
     iTotalSleep += iAddWait
     time.sleep(iAddWait)
 
@@ -159,31 +159,40 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
   strErrText = ""
   dictReturn = {}
 
-  LogEntry("Doing a {} to URL: {}".format(strMethod, strURL), 7)
+  LogEntry("Doing a {} to URL: {}".format(strMethod, strURL), 1)
   try:
     if strMethod.lower() == "get":
       if strUser != "":
         LogEntry(
-            "I have none blank credentials so I'm doing basic auth", 7)
+            "I have none blank credentials so I'm doing basic auth", 3)
         WebRequest = requests.get(strURL, timeout=iTimeOut, headers=dictHeader,
                                   auth=(strUser, strPWD), verify=False, proxies=dictProxies)
       else:
-        LogEntry("credentials are blank, proceeding without auth", 7)
+        LogEntry("credentials are blank, proceeding without auth", 3)
         WebRequest = requests.get(
             strURL, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
-      LogEntry("get executed", 7)
+      LogEntry("get executed", 4)
     if strMethod.lower() == "post":
       if dictPayload:
         dictTmp = dictPayload.copy()
         if "password" in dictTmp:
             dictTmp["password"] = dictTmp["password"][:2]+"*********"
-        LogEntry("with payload of: {}".format(dictTmp), 7)
-        WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
-                                    headers=dictHeader, auth=(strUser, strPWD), verify=False, proxies=dictProxies)
+        if "clientSecret" in dictTmp:
+            dictTmp["clientSecret"] = dictTmp["clientSecret"][:2]+"*********"
+        if strUser != "":
+          LogEntry("I have none blank credentials so I'm doing basic auth", 3)
+          LogEntry("with user auth and payload of: {}".format(dictTmp), 4)
+          WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
+                                      headers=dictHeader, auth=(strUser, strPWD), verify=False, proxies=dictProxies)
+        else:
+          LogEntry("credentials are blank, proceeding without auth", 3)
+          LogEntry("with payload of: {}".format(dictTmp), 4)
+          WebRequest = requests.post(
+              strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
       else:
         WebRequest = requests.post(
             strURL, headers=dictHeader, verify=False, proxies=dictProxies)
-      LogEntry("post executed", 7)
+      LogEntry("post executed", 4)
   except Exception as err:
     dictReturn["condition"] = "Issue with API call"
     dictReturn["errormsg"] = err
@@ -195,12 +204,14 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     strErrText = "response is unknown type"
 
   LogEntry("call resulted in status code {}".format(
-    WebRequest.status_code), 7)
+    WebRequest.status_code), 3)
   iStatusCode = int(WebRequest.status_code)
 
   if iStatusCode != 200:
     strErrCode += str(iStatusCode)
     strErrText += "HTTP Error"
+    LogEntry("HTTP Error: {}".format(iStatusCode), 3)
+    LogEntry("Response: {}".format(WebRequest.content), 4)
   if strErrCode != "":
     dictReturn["condition"] = "problem with your request"
     dictReturn["errcode"] = strErrCode
@@ -414,6 +425,7 @@ def main():
   args = objParser.parse_args()
   strConf_File = args.config
   iVerbose = args.verbosity
+  LogEntry("Verbosity set to {}".format(iVerbose))
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
@@ -469,26 +481,28 @@ def main():
   else:
       dictProxies = {}
 
-  strMethod = "get"
+  if strBaseURL[-1:] != "/":
+    strBaseURL += "/"
+  strMethod = "post"
   dictHeader = {}
   dictHeader["Content-type"] = "application/json"
   dictHeader["Accept"] = "application/json"
   dictHeader["Api-Version"] = "alpha"
 
   dictBody = {}
-  dictBody["client_id"] = strClientID
-  dictBody["client_secret"] = strClientSecret
+  dictBody["clientId"] = strClientID
+  dictBody["clientSecret"] = strClientSecret
 
-  strURL = "{}/auth/token".format(strBaseURL)
+  strURL = "{}auth/token".format(strBaseURL)
 
   APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
   if APIResp[0]["Success"] == False:
-      LogEntry(APIResp)
+    CleanExit(APIResp)
   else:
-      print("Response:\n{}".format(APIResp[1]))
+    strAccessToken = APIResp[1]["accessToken"]
 
 
-  LogEntry("Verbosity: {}".format(args.verbosity))
+
 
 if __name__ == '__main__':
   main()
