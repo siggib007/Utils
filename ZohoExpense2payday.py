@@ -55,7 +55,6 @@ tLastCall = 0
 iTotalSleep = 0
 
 # Define few Defaults
-iLogLevel = 4  # How much logging should be done. Level 10 is debug level, 0 is none
 iTimeOut = 180  # Max time in seconds to wait for network response
 iMinQuiet = 2  # Minimum time in seconds between API calls
 
@@ -80,7 +79,7 @@ def CleanExit(strCause):
 
   sys.exit(9)
 
-def LogEntry(strMsg, iMsgLevel, bAbort=False):
+def LogEntry(strMsg, iMsgLevel=0, bAbort=False):
   """
   This handles writing all event logs into the appropriate log facilities
   This could be a simple text log file, a database connection, etc.
@@ -92,7 +91,7 @@ def LogEntry(strMsg, iMsgLevel, bAbort=False):
   Returns:
     Nothing
   """
-  if iLogLevel > iMsgLevel:
+  if iVerbose > iMsgLevel:
     strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
     objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
     print(strMsg)
@@ -237,59 +236,6 @@ def chkdir(strDir):
   else:
     return True
 
-def SendNotification (strMsg):
-  global strNotifyURL
-  global strNotifyToken
-  global strNotifyChannel
-  global strNotifyEnabled
-  global bNotifyEnabled
-
-  if not bNotifyEnabled:
-    return "notifications not enabled"
-  iTimeOut = 20  # Connection timeout in seconds
-  iMaxMSGlen = 19999  # Truncate the slack message to this length
-
-  strNotifyURL = strNotifyURL
-  dictHeader = {}
-  dictHeader["Content-Type"] = "application/json"
-  dictHeader["Accept"] = "application/json"
-  dictHeader["Cache-Control"] = "no-cache"
-  dictHeader["Connection"] = "keep-alive"
-  dictHeader["Authorization"] = "Bearer " + strNotifyToken
-
-  dictPayload = {}
-  dictPayload["channel"] = strNotifyChannel
-  dictPayload["text"] = strMsg[:iMaxMSGlen]
-
-  bStatus = False
-  WebRequest = None
-  try:
-    WebRequest = requests.post(
-      strNotifyURL, timeout=iTimeOut, json=dictPayload, headers=dictHeader)
-  except Exception as err:
-    return "FAIL. Issue with sending notifications. {}".format(err)
-  if WebRequest is not None:
-    if isinstance(WebRequest,requests.models.Response)==False:
-      LogEntry ("response is unknown type")
-    else:
-      dictResponse = json.loads(WebRequest.text)
-      if isinstance(dictResponse,dict):
-        if "ok" in dictResponse:
-          bStatus = dictResponse["ok"]
-          if bStatus:
-            LogEntry ("Successfully sent slack notification\n{} ".format(strMsg))
-          else:
-            LogEntry ("Failed to send slack notification")
-        else:
-          LogEntry ("Slack notification response: {}".format(dictResponse))
-      else:
-        LogEntry ("response is not a dictionary, here is what came back: {}".format(dictResponse))
-      if not bStatus or WebRequest.status_code != 200:
-        LogEntry ("Problem: Status Code:{} API Response OK={}".format(WebRequest.status_code,bStatus))
-        LogEntry (WebRequest.text)
-  else:
-    LogEntry("WebRequest not defined")
-
 def GetFileHandle(strFileName, strperm):
   """
   This wraps error handling around standard file open function
@@ -334,19 +280,19 @@ def FetchEnv (strEnvName):
     return None
 
 def processConf():
-  global strSaveFolder
-  global strGetURL
-  global strNotifyURL
-  global strNotifyToken
-  global strNotifyChannel
-  global strNotifyEnabled
-  global strBlockedURLs
+  global strBaseURL
+  global strClientID
+  global strClientSecret
+  global strAttachments
+  global strInfile
+  global strProxy
 
-  strNotifyURL = None
-  strNotifyToken = None
-  strNotifyChannel = None
-  strSaveFolder = ""
-  strGetURL = None
+  strBaseURL = None
+  strClientID = None
+  strClientSecret = None
+  strAttachments = None
+  strInfile = None
+  strProxy = None
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -371,20 +317,36 @@ def processConf():
       strConfParts = strLine.split("=")
       strVarName = strConfParts[0].strip()
       strValue = strConfParts[1].strip()
-      if strVarName == "NotificationURL":
-        strNotifyURL = strValue
-      if strVarName == "NotifyChannel":
-        strNotifyChannel = strValue
-      if strVarName == "NotifyToken":
-        strNotifyToken = strValue
-      if strVarName == "NotifyEnable":
-        strNotifyEnabled = strValue
-      if strVarName == "SaveFolder":
-        strSaveFolder = strValue
-      if strVarName == "URL":
-        strGetURL = strValue
-      if strVarName == "Block":
-        strBlockedURLs = strValue
+      if strVarName == "API_URL":
+        if strValue != "":
+          strBaseURL = strValue
+        else:
+          strBaseURL = None
+      if strVarName == "CLIENT_ID":
+        if strValue != "":
+          strClientID = strValue
+        else:
+          strClientID = None
+      if strVarName == "CLIENT_SECRET":
+        if strValue != "":
+          strClientSecret = strValue
+        else:
+          strClientSecret = None
+      if strVarName == "ATTACHMENTS":
+        if strValue != "":
+          strAttachments = strValue
+        else:
+          strAttachments = None
+      if strVarName == "IN_FILE":
+        if strValue != "":
+          strInfile = strValue
+        else:
+          strInfile = None
+      if strVarName == "PROXY":
+        if strValue != "":
+          strProxy = strValue
+        else:
+          strProxy = None
 
   LogEntry ("Done processing configuration, moving on")
 
@@ -395,11 +357,19 @@ def main():
   global strBaseDir
   global iMinQuiet
   global iTimeOut
-  global iLogLevel
   global dictProxies
   global strConf_File
+  global iVerbose
+  global strBaseURL
+  global strClientID
+  global strClientSecret
+  global strAttachments
+  global strInfile
+  global strProxy
 
   lstSysArg = sys.argv
+  strInfile = ""
+  strAttachments = ""
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
 
@@ -435,42 +405,87 @@ def main():
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
   objParser = argparse.ArgumentParser(description="Script to transfer expense items from Zoho expense to Payday")
-  objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
-  objParser.add_argument("-i", "--input", type=str, help="Path to Mikrotik input file")
-  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
-  objParser.add_argument("-c", "--config",type=str, help="Path to configuration file", default=strDefConf)
-  objParser.add_argument("-u", "--URL", type=str, help="Comma seperate list of base URLs to check")
-  objParser.add_argument("-o", "--out", type=str, help="Path to store json output files")
-  objParser.add_argument("-b", "--block", type=str, help="Comma seperate list of URLs not to check, all pages under each URL is ignored")
-  objParser.add_argument("-v", "--verbosity", action="count", default=0, help="Verbose output, vv level 2 vvvv level 4")
-
+  objParser.add_argument("-i", "--input", type=str, help="Path to Expense file to be processed")
+  objParser.add_argument("-p", "--prompt", action="store_true", help="Ignore any input file and prompt for a file to be processed")
+  objParser.add_argument("-a", "--attachments", type=str, help="Path to attachments to be processed")
+  objParser.add_argument("-v", "--verbosity", action="count", default=1, help="Verbose output, vv level 2 vvvv level 4")
+  objParser.add_argument("-c", "--config",type=str, help="Path to configuration file, where you can configure API keys, and other items", default=strDefConf)
+  objParser.add_argument("-u", "--URL", type=str, help="Base URL for API calls")
   args = objParser.parse_args()
   strConf_File = args.config
   iVerbose = args.verbosity
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
-  if FetchEnv("NOTIFYCHANNEL") is not None:
-    strNotifyChannel = FetchEnv("NOTIFYCHANNEL")
-  if strNotifyChannel == "":
-      strNotifyChannel = None
-  if FetchEnv("NOTIFYTOKEN") is not None:
-    strNotifyToken = FetchEnv("NOTIFYTOKEN")
-  if strNotifyToken == "":
-      strNotifyToken = None
-  if FetchEnv("NOTIFYURL") is not None:
-    strNotifyURL = FetchEnv("NOTIFYURL")
-  if strNotifyURL == "":
-      strNotifyURL = None
-  if FetchEnv("NOTIFYENABLE") is not None:
-    strNotifyEnabled = FetchEnv("NOTIFYENABLE")
+  if args.input is not None:
+    strInfile = args.input
 
+  if FetchEnv("API_URL") is not None:
+    strBaseURL = FetchEnv("API_URL")
+  if strBaseURL == "":
+      strBaseURL = None
+  if args.URL is not None:
+    strBaseURL = args.URL
+  if FetchEnv("CLIENT_ID") is not None:
+    strClientID = FetchEnv("CLIENT_ID")
+  if strClientID == "":
+      strClientID = None
+  if FetchEnv("CLIENT_SECRET") is not None:
+    strClientSecret = FetchEnv("CLIENT_SECRET")
+  if strClientSecret == "":
+      strClientSecret = None
 
-  if strNotifyToken is None or strNotifyChannel is None or strNotifyURL is None or strNotifyEnabled.lower() != "true":
-    bNotifyEnabled = False
-    LogEntry("Notify turned off or Missing configuration items for notifications, turning notifications off")
+  if strBaseURL is None or strClientID is None or strClientSecret is None:
+    CleanExit("No URL or API auth config, exiting")
+
+  if FetchEnv("ATTACHMENTS") is not None:
+    strAttachments = FetchEnv("ATTACHMENTS")
+
+  if args.attachments is not None:
+    strAttachments = args.attachments
+
+  if not os.path.exists(strAttachments):
+      CleanExit("Attachments path {} does not exist".format(strAttachments))
+  if not os.path.exists(strInfile):
+      LogEntry("Input file {} does not exist".format(strInfile))
+      strInfile = ""
+
+  if strInfile == "" or args.prompt:
+    if btKinterOK:
+      root = tk.Tk()
+      root.withdraw()
+      strInfile = filedialog.askopenfilename(title="Select file to process", initialdir=strBaseDir)
+      if strInfile == "":
+        CleanExit("No input file selected, exiting")
+    else:
+      CleanExit("No input file selected, exiting")
+
+  if FetchEnv("PROXY") is not None:
+      strProxy = os.getenv("PROXY")
+      dictProxies = {}
+      dictProxies["http"] = strProxy
+      dictProxies["https"] = strProxy
+      LogEntry("Proxy has been configured for {}".format(strProxy), 5)
   else:
-    bNotifyEnabled = True
+      dictProxies = {}
+
+  strMethod = "get"
+  dictHeader = {}
+  dictHeader["Content-type"] = "application/json"
+  dictHeader["Accept"] = "application/json"
+  dictHeader["Api-Version"] = "alpha"
+
+  dictBody = {}
+  dictBody["client_id"] = strClientID
+  dictBody["client_secret"] = strClientSecret
+
+  strURL = "{}/auth/token".format(strBaseURL)
+
+  APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
+  if APIResp[0]["Success"] == False:
+      LogEntry(APIResp, 2)
+  else:
+      print("Response:\n{}".format(APIResp[1]))
 
 
   LogEntry("Verbosity: {}".format(args.verbosity))
