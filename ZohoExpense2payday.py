@@ -483,7 +483,7 @@ def main():
 
   APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
   if APIResp[0]["Success"] == False:
-      LogEntry(APIResp, 2)
+      LogEntry(APIResp)
   else:
       print("Response:\n{}".format(APIResp[1]))
 
