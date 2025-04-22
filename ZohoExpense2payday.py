@@ -60,6 +60,11 @@ iMinQuiet = 2  # Minimum time in seconds between API calls
 
 # sub defs
 
+def getInput(strPrompt):
+  if sys.version_info[0] > 2 :
+    return input(strPrompt)
+  else:
+    return raw_input(strPrompt)
 
 def CleanExit(strCause):
   """
@@ -467,10 +472,14 @@ def main():
       root = tk.Tk()
       root.withdraw()
       strInfile = filedialog.askopenfilename(title="Select file to process", initialdir=strBaseDir)
-      if strInfile == "":
-        CleanExit("No input file selected, exiting")
     else:
-      CleanExit("No input file selected, exiting")
+      strInfile = ""
+
+  if strInfile == "":
+    strInfile = getInput("Please enter the path to the file to be processed: ")
+
+  if strInfile == "":
+    CleanExit("No input file provided, exiting")
 
   if FetchEnv("PROXY") is not None:
       strProxy = os.getenv("PROXY")
@@ -509,7 +518,11 @@ def main():
     CleanExit(APIResp)
   else:
     dictAccounts = APIResp[1]
-    LogEntry("Accounts: {}".format(dictAccounts), 4)
+    dictAcctRef = {}
+    for dictAccount in dictAccounts:
+      strAcctID = dictAccount["id"]
+      strAcctCode = dictAccount["code"]
+      dictAcctRef[strAcctCode] = strAcctID
 
   strURL = "{}expenses/paymenttypes".format(strBaseURL)
   APIResp = MakeAPICall(strURL, dictHeader, strMethod)
@@ -517,8 +530,20 @@ def main():
     CleanExit(APIResp)
   else:
     dictPaymentTypes = APIResp[1]
-    LogEntry("Payment Types: {}".format(dictPaymentTypes), 4)
+  print("Please select a payment type from the list below")
+  print("ID: Name (Description)")
+  for i in range(len(dictPaymentTypes)):
+    strPayTypeName = dictPaymentTypes[i]["title"]
+    strPayTypeDescr = dictPaymentTypes[i]["description"]
+    print("{}: {} ({})".format(i, strPayTypeName, strPayTypeDescr))
+  strPayType = getInput("Please enter the payment type ID: ")
+  if not isInt(strPayType):
+    CleanExit("Payment type ID must be an integer")
+  if int(strPayType) < 0 or int(strPayType) >= len(dictPaymentTypes):
+    CleanExit("Payment type ID must be between 0 and {}".format(len(dictPaymentTypes)-1))
 
+  strPayTypeID = dictPaymentTypes[int(strPayType)]["id"]
+  print("You selected payment type ID {}: {}".format(strPayType,strPayTypeID))
 
 if __name__ == '__main__':
   main()
