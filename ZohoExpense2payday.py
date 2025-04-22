@@ -501,6 +501,15 @@ def main():
   else:
     strAccessToken = APIResp[1]["accessToken"]
 
+  strMethod = "get"
+  dictHeader["Authorization"] = "Bearer {}".format(strAccessToken)
+  strURL = "{}accounting/accounts".format(strBaseURL)
+  APIResp = MakeAPICall(strURL, dictHeader, strMethod)
+  if APIResp[0]["Success"] == False:
+    CleanExit(APIResp)
+  else:
+    dictAccounts = APIResp[1]
+    LogEntry("Accounts: {}".format(dictAccounts), 4)
 
 
 
