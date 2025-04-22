@@ -511,6 +511,13 @@ def main():
     dictAccounts = APIResp[1]
     LogEntry("Accounts: {}".format(dictAccounts), 4)
 
+  strURL = "{}expenses/paymenttypes".format(strBaseURL)
+  APIResp = MakeAPICall(strURL, dictHeader, strMethod)
+  if APIResp[0]["Success"] == False:
+    CleanExit(APIResp)
+  else:
+    dictPaymentTypes = APIResp[1]
+    LogEntry("Payment Types: {}".format(dictPaymentTypes), 4)
 
 
 if __name__ == '__main__':
