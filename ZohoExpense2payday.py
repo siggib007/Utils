@@ -568,37 +568,37 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
-    print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
-        dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
-        dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
-        dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
-        dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
-        ))
-    dictBody = {}
-    dictBody["creditor"] = {}
-    dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
-    dictBody["date"] = dictTemp["Expense Item Date"]
-    dictBody["deductible"] = bDeductable
-    dictBody["status"] = "PAID"
-    dictBody["paidDate"] = dictTemp["Expense Item Date"]
-    dictBody["paymentType"] = {}
-    dictBody["paymentType"]["id"] = strPayTypeID
-    #dictBody["reference"] = dictTemp["Report Number"]
-    dictBody["reference"] = "New Import Test"
-    dictBody["lines"] = []
-    dictLine = {}
-    dictLine["quantity"] = 1
-    dictLine["description"] = dictTemp["Expense Description"]
-    strAmount = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-    dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-    dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
-    dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
-    dictBody["lines"].append(dictLine)
+    if dictTemp["Mileage Type"] == "NonMileage":
+      print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
+          dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
+          dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
+          dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
+          dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
+          ))
+      dictBody = {}
+      dictBody["creditor"] = {}
+      dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
+      dictBody["date"] = dictTemp["Expense Item Date"]
+      dictBody["deductible"] = bDeductable
+      dictBody["status"] = "PAID"
+      dictBody["paidDate"] = dictTemp["Expense Item Date"]
+      dictBody["paymentType"] = {}
+      dictBody["paymentType"]["id"] = strPayTypeID
+      #dictBody["reference"] = dictTemp["Report Number"]
+      dictBody["reference"] = "Another Import Test"
+      dictBody["lines"] = []
+      dictLine = {}
+      dictLine["quantity"] = 1
+      dictLine["description"] = dictTemp["Expense Description"]
+      dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
+      dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+      dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+      dictBody["lines"].append(dictLine)
 
-    strMethod = "post"
-    strURL = "{}expenses".format(strBaseURL)
-    APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
-    print("APIResp: {}".format(APIResp))
+      strMethod = "post"
+      strURL = "{}expenses".format(strBaseURL)
+      APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
+      print("APIResp: {}".format(APIResp))
 
 
 if __name__ == '__main__':
