@@ -181,11 +181,6 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
       LogEntry("get executed", 4)
     if strMethod.lower() == "post":
       if dictPayload:
-        strPayload = json.dumps(dictPayload)
-        strPayload = strPayload.replace("'", '"')
-        strPayload = strPayload.replace("None", "null")
-        strPayload = strPayload.replace("True", "true")
-        strPayload = strPayload.replace("False", "false")
         dictTmp = dictPayload.copy()
         if "password" in dictTmp:
             dictTmp["password"] = dictTmp["password"][:2]+"*********"
@@ -194,13 +189,13 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
         if strUser != "":
           LogEntry("I have none blank credentials so I'm doing basic auth", 3)
           LogEntry("with user auth and payload of: {}".format(dictTmp), 4)
-          WebRequest = requests.post(strURL, data=strPayload, timeout=iTimeOut,
+          WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
                                       headers=dictHeader, auth=(strUser, strPWD), verify=False, proxies=dictProxies)
         else:
           LogEntry("credentials are blank, proceeding without auth", 3)
           LogEntry("with payload of: {}".format(dictTmp), 4)
           WebRequest = requests.post(
-              strURL, data=strPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
+              strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
       else:
         LogEntry("No payload, doing a simple post", 3)
         WebRequest = requests.post(
@@ -219,7 +214,6 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
   LogEntry("call resulted in status code {}".format(
     WebRequest.status_code), 3)
   iStatusCode = int(WebRequest.status_code)
-  #print(WebRequest.text)
 
   if iStatusCode != 200:
     strErrCode += str(iStatusCode)
@@ -584,13 +578,13 @@ def main():
     dictBody["creditor"] = {}
     dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
     dictBody["date"] = dictTemp["Expense Item Date"]
-    dictBody["deductable"] = bDeductable
+    dictBody["deductible"] = bDeductable
     dictBody["status"] = "PAID"
     dictBody["paidDate"] = dictTemp["Expense Item Date"]
     dictBody["paymentType"] = {}
     dictBody["paymentType"]["id"] = strPayTypeID
     #dictBody["reference"] = dictTemp["Report Number"]
-    dictBody["reference"] = "Import Test"
+    dictBody["reference"] = "New Import Test"
     dictBody["lines"] = []
     dictLine = {}
     dictLine["quantity"] = 1
