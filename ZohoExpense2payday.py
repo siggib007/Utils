@@ -14,6 +14,7 @@ import os
 import time
 import platform
 import sys
+import csv
 import subprocess
 import argparse
 
@@ -53,6 +54,7 @@ else:
 # Few globals
 tLastCall = 0
 iTotalSleep = 0
+csvDelim = ","
 
 # Define few Defaults
 iTimeOut = 180  # Max time in seconds to wait for network response
@@ -273,7 +275,7 @@ def GetFileHandle(strFileName, strperm):
 
   try:
     if len(strperm) > 1:
-      objFileHndl = open(strFileName, strperm)
+      objFileHndl = open(strFileName, strperm, encoding="utf-8")
     else:
       objFileHndl = open(strFileName, strperm, encoding='utf-8-sig')
     return objFileHndl
@@ -302,6 +304,8 @@ def processConf():
   global strAttachments
   global strInfile
   global strProxy
+  global csvDelim
+  global bDeductable
 
   strBaseURL = None
   strClientID = None
@@ -309,6 +313,7 @@ def processConf():
   strAttachments = None
   strInfile = None
   strProxy = None
+  bDeductable = None
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -336,33 +341,27 @@ def processConf():
       if strVarName == "API_URL":
         if strValue != "":
           strBaseURL = strValue
-        else:
-          strBaseURL = None
       if strVarName == "CLIENT_ID":
         if strValue != "":
           strClientID = strValue
-        else:
-          strClientID = None
       if strVarName == "CLIENT_SECRET":
         if strValue != "":
           strClientSecret = strValue
-        else:
-          strClientSecret = None
       if strVarName == "ATTACHMENTS":
         if strValue != "":
           strAttachments = strValue
-        else:
-          strAttachments = None
       if strVarName == "IN_FILE":
         if strValue != "":
           strInfile = strValue
-        else:
-          strInfile = None
       if strVarName == "PROXY":
         if strValue != "":
           strProxy = strValue
-        else:
-          strProxy = None
+      if strVarName == "CSV_DELIM":
+        if strValue != "":
+          csvDelim = strValue
+      if strVarName == "DEDUCTABLE":
+        bDeductable = strValue.lower() == "true"
+
 
   LogEntry ("Done processing configuration, moving on")
 
@@ -382,6 +381,8 @@ def main():
   global strAttachments
   global strInfile
   global strProxy
+  global csvDelim
+  global bDeductable
 
   lstSysArg = sys.argv
   strInfile = ""
@@ -420,10 +421,11 @@ def main():
   iLoc = lstSysArg[0].rfind(".")
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
-  objParser = argparse.ArgumentParser(description="Script to transfer expense items from Zoho expense to Payday")
+  objParser = argparse.ArgumentParser(description="Script to transfer expense items from Zoho expense to Payday. All items overwrite configuration file settings as well as environment variables.")
   objParser.add_argument("-i", "--input", type=str, help="Path to Expense file to be processed")
   objParser.add_argument("-p", "--prompt", action="store_true", help="Ignore any input file and prompt for a file to be processed")
   objParser.add_argument("-a", "--attachments", type=str, help="Path to attachments to be processed")
+  objParser.add_argument("-d", "--deductable", type=str, help="Is the VAT in this file deductable? True/False")
   objParser.add_argument("-v", "--verbosity", action="count", default=1, help="Verbose output, vv level 2 vvvv level 4")
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file, where you can configure API keys, and other items", default=strDefConf)
   objParser.add_argument("-u", "--URL", type=str, help="Base URL for API calls")
@@ -458,8 +460,17 @@ def main():
   if FetchEnv("ATTACHMENTS") is not None:
     strAttachments = FetchEnv("ATTACHMENTS")
 
+  if FetchEnv("CSV_DELIM") is not None:
+    csvDelim = FetchEnv("CSV_DELIM")
+
   if args.attachments is not None:
     strAttachments = args.attachments
+
+  if FetchEnv("DEDUCTABLE") is not None:
+    strDeduct = FetchEnv("DEDUCTABLE")
+    bDeductable = strDeduct.lower() == "true"
+  if args.deductable is not None:
+    bDeductable = args.deductable.lower() == "true"
 
   if not os.path.exists(strAttachments):
       CleanExit("Attachments path {} does not exist".format(strAttachments))
@@ -480,6 +491,14 @@ def main():
 
   if strInfile == "":
     CleanExit("No input file provided, exiting")
+
+  iLoc = strInfile.rfind(".")
+  strFileExt = strInfile[iLoc+1:]
+
+  if strFileExt.lower() == "csv":
+    objFileIn = GetFileHandle (strInfile, "r")
+  else:
+    CleanExit("only able to process csv files. Unable to process {} files".format(strFileExt))
 
   if FetchEnv("PROXY") is not None:
       strProxy = os.getenv("PROXY")
@@ -543,7 +562,37 @@ def main():
     CleanExit("Payment type ID must be between 0 and {}".format(len(dictPaymentTypes)-1))
 
   strPayTypeID = dictPaymentTypes[int(strPayType)]["id"]
-  print("You selected payment type ID {}: {}".format(strPayType,strPayTypeID))
+  LogEntry("Payment type ID {}: {}, was selected".format(strPayType,strPayTypeID))
+
+  strEntryID = ""
+  objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
+  for dictTemp in objReader:
+    dictBody = {}
+    dictBody["creditor"] = {}
+    dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
+    dictBody["date"] = dictTemp["Expense Item Date"]
+    dictBody["deductable"] = bDeductable
+    dictBody["status"] = "PAID"
+    dictBody["paidDate"] = dictTemp["Expense Item Date"]
+    dictBody["paymentType"] = {}
+    dictBody["paymentType"]["id"] = strPayTypeID
+    #dictBody["reference"] = dictTemp["Report Number"]
+    dictBody["reference"] = "Import Test"
+    dictBody["lines"] = []
+    dictLine = {}
+    dictLine["quantity"] = 1
+    dictLine["description"] = dictTemp["Expense Description"]
+    dictLine["unitPriceIncludingVat "] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
+    dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+    dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+
+    print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
+        dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
+        dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
+        dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
+        dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
+        ))
+
 
 if __name__ == '__main__':
   main()
