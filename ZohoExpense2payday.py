@@ -181,6 +181,11 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
       LogEntry("get executed", 4)
     if strMethod.lower() == "post":
       if dictPayload:
+        strPayload = json.dumps(dictPayload)
+        strPayload = strPayload.replace("'", '"')
+        strPayload = strPayload.replace("None", "null")
+        strPayload = strPayload.replace("True", "true")
+        strPayload = strPayload.replace("False", "false")
         dictTmp = dictPayload.copy()
         if "password" in dictTmp:
             dictTmp["password"] = dictTmp["password"][:2]+"*********"
@@ -189,13 +194,13 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
         if strUser != "":
           LogEntry("I have none blank credentials so I'm doing basic auth", 3)
           LogEntry("with user auth and payload of: {}".format(dictTmp), 4)
-          WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
+          WebRequest = requests.post(strURL, data=strPayload, timeout=iTimeOut,
                                       headers=dictHeader, auth=(strUser, strPWD), verify=False, proxies=dictProxies)
         else:
           LogEntry("credentials are blank, proceeding without auth", 3)
           LogEntry("with payload of: {}".format(dictTmp), 4)
           WebRequest = requests.post(
-              strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
+              strURL, data=strPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
       else:
         LogEntry("No payload, doing a simple post", 3)
         WebRequest = requests.post(
@@ -214,6 +219,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
   LogEntry("call resulted in status code {}".format(
     WebRequest.status_code), 3)
   iStatusCode = int(WebRequest.status_code)
+  #print(WebRequest.text)
 
   if iStatusCode != 200:
     strErrCode += str(iStatusCode)
@@ -306,7 +312,7 @@ def processConf():
   global strInfile
   global strProxy
   global csvDelim
-  global strDeductable
+  global bDeductable
 
   strBaseURL = None
   strClientID = None
@@ -314,7 +320,7 @@ def processConf():
   strAttachments = None
   strInfile = None
   strProxy = None
-  strDeductable = "true"
+  bDeductable = True
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -361,7 +367,7 @@ def processConf():
         if strValue != "":
           csvDelim = strValue
       if strVarName == "DEDUCTABLE":
-        strDeductable = strValue.lower()
+        bDeductable = strValue.lower() == "true"
 
 
   LogEntry ("Done processing configuration, moving on")
@@ -383,7 +389,7 @@ def main():
   global strInfile
   global strProxy
   global csvDelim
-  global strDeductable
+  global bDeductable
 
   lstSysArg = sys.argv
   strInfile = ""
@@ -469,9 +475,9 @@ def main():
 
   if FetchEnv("DEDUCTABLE") is not None:
     strDeduct = FetchEnv("DEDUCTABLE")
-    strDeductable = strDeduct.lower()
+    bDeductable = strDeduct.lower() == "true"
   if args.deductable is not None:
-    strDeductable = args.deductable.lower()
+    bDeductable = args.deductable.lower() == "true"
 
   if not os.path.exists(strAttachments):
       CleanExit("Attachments path {} does not exist".format(strAttachments))
@@ -578,22 +584,20 @@ def main():
     dictBody["creditor"] = {}
     dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
     dictBody["date"] = dictTemp["Expense Item Date"]
-    dictBody["deductable"] = strDeductable
+    dictBody["deductable"] = bDeductable
     dictBody["status"] = "PAID"
     dictBody["paidDate"] = dictTemp["Expense Item Date"]
     dictBody["paymentType"] = {}
     dictBody["paymentType"]["id"] = strPayTypeID
     #dictBody["reference"] = dictTemp["Report Number"]
-    dictBody["reference"] = "deductable = true"
+    dictBody["reference"] = "Import Test"
     dictBody["lines"] = []
     dictLine = {}
     dictLine["quantity"] = 1
     dictLine["description"] = dictTemp["Expense Description"]
     strAmount = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-    iLoc = strAmount.find(".")
-    iAmount = int(strAmount[:iLoc])
     dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-    dictLine["vatPercentage"] = float(dictTemp["Tax Percentage"])
+    dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
     dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
     dictBody["lines"].append(dictLine)
 
