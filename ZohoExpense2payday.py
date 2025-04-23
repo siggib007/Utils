@@ -306,7 +306,7 @@ def processConf():
   global strInfile
   global strProxy
   global csvDelim
-  global bDeductable
+  global strDeductable
 
   strBaseURL = None
   strClientID = None
@@ -314,7 +314,7 @@ def processConf():
   strAttachments = None
   strInfile = None
   strProxy = None
-  bDeductable = True
+  strDeductable = "true"
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -361,7 +361,7 @@ def processConf():
         if strValue != "":
           csvDelim = strValue
       if strVarName == "DEDUCTABLE":
-        bDeductable = strValue.lower() == "true"
+        strDeductable = strValue.lower()
 
 
   LogEntry ("Done processing configuration, moving on")
@@ -383,7 +383,7 @@ def main():
   global strInfile
   global strProxy
   global csvDelim
-  global bDeductable
+  global strDeductable
 
   lstSysArg = sys.argv
   strInfile = ""
@@ -469,9 +469,9 @@ def main():
 
   if FetchEnv("DEDUCTABLE") is not None:
     strDeduct = FetchEnv("DEDUCTABLE")
-    bDeductable = strDeduct.lower() == "true"
+    strDeductable = strDeduct.lower()
   if args.deductable is not None:
-    bDeductable = args.deductable.lower() == "true"
+    strDeductable = args.deductable.lower()
 
   if not os.path.exists(strAttachments):
       CleanExit("Attachments path {} does not exist".format(strAttachments))
@@ -578,13 +578,13 @@ def main():
     dictBody["creditor"] = {}
     dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
     dictBody["date"] = dictTemp["Expense Item Date"]
-    dictBody["deductable"] = bDeductable
-    dictBody["status"] = "UNPAID"
+    dictBody["deductable"] = strDeductable
+    dictBody["status"] = "PAID"
     dictBody["paidDate"] = dictTemp["Expense Item Date"]
     dictBody["paymentType"] = {}
     dictBody["paymentType"]["id"] = strPayTypeID
     #dictBody["reference"] = dictTemp["Report Number"]
-    dictBody["reference"] = "Import Test"
+    dictBody["reference"] = "deductable = true"
     dictBody["lines"] = []
     dictLine = {}
     dictLine["quantity"] = 1
@@ -592,7 +592,7 @@ def main():
     strAmount = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
     iLoc = strAmount.find(".")
     iAmount = int(strAmount[:iLoc])
-    dictLine["unitPriceIncludingVat "] = iAmount
+    dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
     dictLine["vatPercentage"] = float(dictTemp["Tax Percentage"])
     dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
     dictBody["lines"].append(dictLine)
