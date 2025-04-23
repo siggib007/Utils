@@ -197,6 +197,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
           WebRequest = requests.post(
               strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
       else:
+        LogEntry("No payload, doing a simple post", 3)
         WebRequest = requests.post(
             strURL, headers=dictHeader, verify=False, proxies=dictProxies)
       LogEntry("post executed", 4)
@@ -313,7 +314,7 @@ def processConf():
   strAttachments = None
   strInfile = None
   strProxy = None
-  bDeductable = None
+  bDeductable = True
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -425,7 +426,7 @@ def main():
   objParser.add_argument("-i", "--input", type=str, help="Path to Expense file to be processed")
   objParser.add_argument("-p", "--prompt", action="store_true", help="Ignore any input file and prompt for a file to be processed")
   objParser.add_argument("-a", "--attachments", type=str, help="Path to attachments to be processed")
-  objParser.add_argument("-d", "--deductable", type=str, help="Is the VAT in this file deductable? True/False")
+  objParser.add_argument("-d", "--deductable", type=str, help="Is the VAT in this file deductable? True/False. Default is True")
   objParser.add_argument("-v", "--verbosity", action="count", default=1, help="Verbose output, vv level 2 vvvv level 4")
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file, where you can configure API keys, and other items", default=strDefConf)
   objParser.add_argument("-u", "--URL", type=str, help="Base URL for API calls")
@@ -567,12 +568,18 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
+    print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
+        dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
+        dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
+        dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
+        dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
+        ))
     dictBody = {}
     dictBody["creditor"] = {}
     dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
     dictBody["date"] = dictTemp["Expense Item Date"]
     dictBody["deductable"] = bDeductable
-    dictBody["status"] = "PAID"
+    dictBody["status"] = "UNPAID"
     dictBody["paidDate"] = dictTemp["Expense Item Date"]
     dictBody["paymentType"] = {}
     dictBody["paymentType"]["id"] = strPayTypeID
@@ -582,16 +589,18 @@ def main():
     dictLine = {}
     dictLine["quantity"] = 1
     dictLine["description"] = dictTemp["Expense Description"]
-    dictLine["unitPriceIncludingVat "] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-    dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+    strAmount = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
+    iLoc = strAmount.find(".")
+    iAmount = int(strAmount[:iLoc])
+    dictLine["unitPriceIncludingVat "] = iAmount
+    dictLine["vatPercentage"] = float(dictTemp["Tax Percentage"])
     dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+    dictBody["lines"].append(dictLine)
 
-    print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
-        dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
-        dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
-        dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
-        dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
-        ))
+    strMethod = "post"
+    strURL = "{}expenses".format(strBaseURL)
+    APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
+    print("APIResp: {}".format(APIResp))
 
 
 if __name__ == '__main__':
