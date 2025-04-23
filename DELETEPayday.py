@@ -205,11 +205,10 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     strErrCode = "ResponseErr"
     strErrText = "response is unknown type"
 
-  LogEntry("call resulted in status code {}".format(
-    WebRequest.status_code), 3)
+  LogEntry("call resulted in status code {}".format(WebRequest.status_code), 3)
   iStatusCode = int(WebRequest.status_code)
 
-  if iStatusCode != 200:
+  if iStatusCode not in (200,201,204):
     strErrCode += str(iStatusCode)
     strErrText += "HTTP Error"
     LogEntry("HTTP Error: {}".format(iStatusCode), 3)
@@ -222,6 +221,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
   else:
     if "<html>" in WebRequest.text[:99]:
       return ({"Success": True}, WebRequest.text)
+
     try:
       return ({"Success": True}, WebRequest.json())
     except Exception as err:
@@ -491,9 +491,11 @@ def main():
     CleanExit(APIResp)
   else:
     dictExpenses = APIResp[1]
-    dictAcctRef = {}
     strMethod = "delete"
-    for dictExpense in dictExpenses:
+    if "expenses" not in dictExpenses:
+      LogEntry("No expenses found, exiting")
+      CleanExit("No expenses found, exiting")
+    for dictExpense in dictExpenses["expenses"]:
       strURL = "{}expenses/{}".format(strBaseURL,dictExpense["id"])
       APIResp = MakeAPICall(strURL, dictHeader, strMethod)
       LogEntry("APIResp: {}".format(APIResp))

@@ -215,7 +215,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     WebRequest.status_code), 3)
   iStatusCode = int(WebRequest.status_code)
 
-  if iStatusCode != 200:
+  if iStatusCode not in (200,201,204):
     strErrCode += str(iStatusCode)
     strErrText += "HTTP Error"
     LogEntry("HTTP Error: {}".format(iStatusCode), 3)
