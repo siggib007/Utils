@@ -298,6 +298,27 @@ def FetchEnv (strEnvName):
   else:
     return None
 
+def ValidateKT(strKennitala):
+  """
+  This script takes a kennitala (an Icelandic SSN) and checks if it is valid.
+  It does this by checking the length and if it is a number.
+  Then it checks the checksum of the kennitala.
+  Parameters:
+    strKennitala: simple string containing the kennitala to be validated
+  Returns:
+    Boolean indicating if the kennitala is valid or not.
+  """
+  strKennitala = strKennitala.replace("-", "").replace(" ", "").replace(".", "").replace(",", "")
+  if len(strKennitala) != 10 or not strKennitala.isdigit():
+    return False
+  lstSum = []
+  lstCheck = [3,2,7,6,5,4,3,2]
+  for index,char in enumerate(strKennitala[:8]):
+    lstSum.append(int(char) * lstCheck[index])
+  intSum = sum(lstSum)
+  intCheck = intSum % 11
+  return (11 - intCheck) == int(strKennitala[8])
+
 def processConf():
   global strBaseURL
   global strClientID
