@@ -1,7 +1,7 @@
 '''
-Script Transfers expenses from Zoho Expense to payday
+Script DELETES ALL REROCDS IN PAYDAY!!!!!!
 
-Author Siggi Bjarnason 21 april 2025
+Author Siggi Bjarnason 23 april 2025
 Öruggt Net Copyright 2025.
 
 Following packages need to be installed
@@ -30,14 +30,6 @@ except ImportError:
   subprocess.check_call([sys.executable, "-m", "pip", "install", 'json'])
 finally:
   import json
-
-try:
-  import tkinter as tk
-  from tkinter import filedialog
-  btKinterOK = True
-except:
-  print("Failed to load tkinter, CLI only mode.")
-  btKinterOK = False
 
 if sys.version_info[0] > 2:
   import urllib.parse as urlparse
@@ -201,6 +193,8 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
         WebRequest = requests.post(
             strURL, headers=dictHeader, verify=False, proxies=dictProxies)
       LogEntry("post executed", 4)
+    if strMethod.lower() == "delete":
+      WebRequest = requests.delete(strURL, headers=dictHeader, verify=False, proxies=dictProxies)
   except Exception as err:
     dictReturn["condition"] = "Issue with API call"
     dictReturn["errormsg"] = err
@@ -297,27 +291,6 @@ def FetchEnv (strEnvName):
     return os.getenv(strEnvName)
   else:
     return None
-
-def ValidateKT(strKennitala):
-  """
-  This script takes a kennitala (an Icelandic SSN) and checks if it is valid.
-  It does this by checking the length and if it is a number.
-  Then it checks the checksum of the kennitala.
-  Parameters:
-    strKennitala: simple string containing the kennitala to be validated
-  Returns:
-    Boolean indicating if the kennitala is valid or not.
-  """
-  strKennitala = strKennitala.replace("-", "").replace(" ", "").replace(".", "").replace(",", "")
-  if len(strKennitala) != 10 or not strKennitala.isdigit():
-    return False
-  lstSum = []
-  lstCheck = [3,2,7,6,5,4,3,2]
-  for index,char in enumerate(strKennitala[:8]):
-    lstSum.append(int(char) * lstCheck[index])
-  intSum = sum(lstSum)
-  intCheck = intSum % 11
-  return (11 - intCheck) == int(strKennitala[8])
 
 def processConf():
   global strBaseURL
@@ -433,7 +406,7 @@ def main():
       sys.version_info[0], sys.version_info[1], sys.version_info[2])
   strScriptHost = platform.node().upper()
 
-  print("This is a script to transfer expense items from Zoho expense to Payday. "
+  print("This is a script to delete all data out of Payday. "
         "This is running under Python Version {}".format(strVersion))
   print("Running from: {}".format(strRealPath))
   dtNow = time.strftime("%A %d %B %Y %H:%M:%S %Z")
@@ -443,11 +416,7 @@ def main():
   iLoc = lstSysArg[0].rfind(".")
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
 
-  objParser = argparse.ArgumentParser(description="Script to transfer expense items from Zoho expense to Payday. All items overwrite configuration file settings as well as environment variables.")
-  objParser.add_argument("-i", "--input", type=str, help="Path to Expense file to be processed")
-  objParser.add_argument("-p", "--prompt", action="store_true", help="Ignore any input file and prompt for a file to be processed")
-  objParser.add_argument("-a", "--attachments", type=str, help="Path to attachments to be processed")
-  objParser.add_argument("-d", "--deductable", type=str, help="Is the VAT in this file deductable? True/False. Default is True")
+  objParser = argparse.ArgumentParser(description="Script to delete all data from payday. All items overwrite configuration file settings as well as environment variables.")
   objParser.add_argument("-v", "--verbosity", action="count", default=1, help="Verbose output, vv level 2 vvvv level 4")
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file, where you can configure API keys, and other items", default=strDefConf)
   objParser.add_argument("-u", "--URL", type=str, help="Base URL for API calls")
@@ -457,9 +426,6 @@ def main():
   LogEntry("Verbosity set to {}".format(iVerbose))
   LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
-
-  if args.input is not None:
-    strInfile = args.input
 
   if FetchEnv("API_URL") is not None:
     strBaseURL = FetchEnv("API_URL")
@@ -479,49 +445,6 @@ def main():
   if strBaseURL is None or strClientID is None or strClientSecret is None:
     CleanExit("No URL or API auth config, exiting")
 
-  if FetchEnv("ATTACHMENTS") is not None:
-    strAttachments = FetchEnv("ATTACHMENTS")
-
-  if FetchEnv("CSV_DELIM") is not None:
-    csvDelim = FetchEnv("CSV_DELIM")
-
-  if args.attachments is not None:
-    strAttachments = args.attachments
-
-  if FetchEnv("DEDUCTABLE") is not None:
-    strDeduct = FetchEnv("DEDUCTABLE")
-    bDeductable = strDeduct.lower() == "true"
-  if args.deductable is not None:
-    bDeductable = args.deductable.lower() == "true"
-
-  if not os.path.exists(strAttachments):
-      CleanExit("Attachments path {} does not exist".format(strAttachments))
-  if not os.path.exists(strInfile):
-      LogEntry("Input file {} does not exist".format(strInfile))
-      strInfile = ""
-
-  if strInfile == "" or args.prompt:
-    if btKinterOK:
-      root = tk.Tk()
-      root.withdraw()
-      strInfile = filedialog.askopenfilename(title="Select file to process", initialdir=strBaseDir)
-    else:
-      strInfile = ""
-
-  if strInfile == "":
-    strInfile = getInput("Please enter the path to the file to be processed: ")
-
-  if strInfile == "":
-    CleanExit("No input file provided, exiting")
-
-  iLoc = strInfile.rfind(".")
-  strFileExt = strInfile[iLoc+1:]
-
-  if strFileExt.lower() == "csv":
-    objFileIn = GetFileHandle (strInfile, "r")
-  else:
-    CleanExit("only able to process csv files. Unable to process {} files".format(strFileExt))
-
   if FetchEnv("PROXY") is not None:
       strProxy = os.getenv("PROXY")
       dictProxies = {}
@@ -533,6 +456,15 @@ def main():
 
   if strBaseURL[-1:] != "/":
     strBaseURL += "/"
+
+  if "test" not in strBaseURL:
+    CleanExit("This script is only for testing, please use the test URL")
+
+  print("THIS WILL DELETE (BACKCHARGE) ALL DATA ON THE SITE!!!")
+  strInput = input("Please type 'I know' to confirm: ")
+  if strInput != "I know":
+    CleanExit("User did not confirm, exiting")
+
   strMethod = "post"
   dictHeader = {}
   dictHeader["Content-type"] = "application/json"
@@ -553,73 +485,18 @@ def main():
 
   strMethod = "get"
   dictHeader["Authorization"] = "Bearer {}".format(strAccessToken)
-  strURL = "{}accounting/accounts".format(strBaseURL)
+  strURL = "{}expenses".format(strBaseURL)
   APIResp = MakeAPICall(strURL, dictHeader, strMethod)
   if APIResp[0]["Success"] == False:
     CleanExit(APIResp)
   else:
-    dictAccounts = APIResp[1]
+    dictExpenses = APIResp[1]
     dictAcctRef = {}
-    for dictAccount in dictAccounts:
-      strAcctID = dictAccount["id"]
-      strAcctCode = dictAccount["code"]
-      dictAcctRef[strAcctCode] = strAcctID
-
-  strURL = "{}expenses/paymenttypes".format(strBaseURL)
-  APIResp = MakeAPICall(strURL, dictHeader, strMethod)
-  if APIResp[0]["Success"] == False:
-    CleanExit(APIResp)
-  else:
-    dictPaymentTypes = APIResp[1]
-  print("Please select a payment type from the list below")
-  print("ID: Name (Description)")
-  for i in range(len(dictPaymentTypes)):
-    strPayTypeName = dictPaymentTypes[i]["title"]
-    strPayTypeDescr = dictPaymentTypes[i]["description"]
-    print("{}: {} ({})".format(i, strPayTypeName, strPayTypeDescr))
-  strPayType = getInput("Please enter the payment type ID: ")
-  if not isInt(strPayType):
-    CleanExit("Payment type ID must be an integer")
-  if int(strPayType) < 0 or int(strPayType) >= len(dictPaymentTypes):
-    CleanExit("Payment type ID must be between 0 and {}".format(len(dictPaymentTypes)-1))
-
-  strPayTypeID = dictPaymentTypes[int(strPayType)]["id"]
-  LogEntry("Payment type ID {}: {}, was selected".format(strPayType,strPayTypeID))
-
-  strEntryID = ""
-  objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
-  for dictTemp in objReader:
-    if dictTemp["Mileage Type"] == "NonMileage":
-      print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
-          dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
-          dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
-          dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
-          dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
-          ))
-      dictBody = {}
-      dictBody["creditor"] = {}
-      dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
-      dictBody["date"] = dictTemp["Expense Item Date"]
-      dictBody["deductible"] = bDeductable
-      dictBody["status"] = "PAID"
-      dictBody["paidDate"] = dictTemp["Expense Item Date"]
-      dictBody["paymentType"] = {}
-      dictBody["paymentType"]["id"] = strPayTypeID
-      #dictBody["reference"] = dictTemp["Report Number"]
-      dictBody["reference"] = "Another Import Test"
-      dictBody["lines"] = []
-      dictLine = {}
-      dictLine["quantity"] = 1
-      dictLine["description"] = dictTemp["Expense Description"]
-      dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-      dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
-      dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
-      dictBody["lines"].append(dictLine)
-
-      strMethod = "post"
-      strURL = "{}expenses".format(strBaseURL)
-      APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
-      print("APIResp: {}".format(APIResp))
+    strMethod = "delete"
+    for dictExpense in dictExpenses:
+      strURL = "{}expenses/{}".format(strBaseURL,dictExpense["id"])
+      APIResp = MakeAPICall(strURL, dictHeader, strMethod)
+      LogEntry("APIResp: {}".format(APIResp))
 
 
 if __name__ == '__main__':
