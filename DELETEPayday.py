@@ -219,9 +219,8 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     dictReturn["errormsg"] = strErrText
     return ({"Success": False}, [dictReturn])
   else:
-    if "<html>" in WebRequest.text[:99]:
+    if "<html>" in WebRequest.text[:99] or WebRequest.text== "":
       return ({"Success": True}, WebRequest.text)
-
     try:
       return ({"Success": True}, WebRequest.json())
     except Exception as err:

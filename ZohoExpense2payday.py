@@ -17,6 +17,7 @@ import sys
 import csv
 import subprocess
 import argparse
+import fnmatch
 
 try:
   import requests
@@ -61,6 +62,20 @@ iTimeOut = 180  # Max time in seconds to wait for network response
 iMinQuiet = 2  # Minimum time in seconds between API calls
 
 # sub defs
+def ListAttachments(strDirectory, strPattern):
+    """
+    Lists all files in the given directory that match the specified pattern.
+    Parameters:
+        strDirectory: The directory to search in.
+        strPattern: The pattern to match (e.g., '[0-9]*' for files starting with a number).
+    Returns:
+        A list of matching file names.
+    """
+    lstFiles = []
+    for file in os.listdir(strDirectory):
+        if fnmatch.fnmatch(file, strPattern):
+            lstFiles.append(file)
+    return lstFiles
 
 def getInput(strPrompt):
   if sys.version_info[0] > 2 :
@@ -127,7 +142,7 @@ def isInt(CheckValue):
     fTemp = "NULL"
   return fTemp != "NULL"
 
-def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPWD=""):
+def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", lstFiles=[], strUser="", strPWD=""):
   """
   Handles the actual communication with the API, has a backoff mechanism
   MinQuiet defines how many seconds must elapse between each API call.
@@ -136,7 +151,8 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     strURL: Simple String. API EndPoint to call
     dictHeader: Simple string with the header to pass along with the call
     strMethod: Simple string. Call method such as GET, PUT, POST, etc
-    Payload: Optional. Any payload to send along in the appropriate structure and format
+    dictPayload: Optional. Any payload to send along in the appropriate structure and format
+    lstFiles: Optional. List of files (full absolute paths) to be uploaded, if any
     User: Optional. Simple string. Username to use in basic Auth
     Password: Simple string. Password to use in basic auth
   Return:
@@ -190,16 +206,18 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
           LogEntry("I have none blank credentials so I'm doing basic auth", 3)
           LogEntry("with user auth and payload of: {}".format(dictTmp), 4)
           WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
-                                      headers=dictHeader, auth=(strUser, strPWD), verify=False, proxies=dictProxies)
+                                      headers=dictHeader, auth=(strUser, strPWD),
+                                      verify=False, proxies=dictProxies,files=lstFiles)
         else:
           LogEntry("credentials are blank, proceeding without auth", 3)
           LogEntry("with payload of: {}".format(dictTmp), 4)
           WebRequest = requests.post(
-              strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader, verify=False, proxies=dictProxies)
+              strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader,
+              files=lstFiles, verify=False, proxies=dictProxies)
       else:
         LogEntry("No payload, doing a simple post", 3)
         WebRequest = requests.post(
-            strURL, headers=dictHeader, verify=False, proxies=dictProxies)
+            strURL, headers=dictHeader, verify=False, proxies=dictProxies, files=lstFiles)
       LogEntry("post executed", 4)
   except Exception as err:
     dictReturn["condition"] = "Issue with API call"
@@ -226,7 +244,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", strUser="", strPW
     dictReturn["errormsg"] = strErrText
     return ({"Success": False}, [dictReturn])
   else:
-    if "<html>" in WebRequest.text[:99]:
+    if "<html>" in WebRequest.text[:99] or WebRequest.text== "":
       return ({"Success": True}, WebRequest.text)
     try:
       return ({"Success": True}, WebRequest.json())
@@ -496,6 +514,8 @@ def main():
 
   if not os.path.exists(strAttachments):
       CleanExit("Attachments path {} does not exist".format(strAttachments))
+  strAttachments = strAttachments.replace("\\", "/")
+
   if not os.path.exists(strInfile):
       LogEntry("Input file {} does not exist".format(strInfile))
       strInfile = ""
@@ -596,6 +616,15 @@ def main():
           dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
           dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
           ))
+      lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
+      lstFiles = []
+      for strfile in lstAttachments:
+        strFilePath = strAttachments + "/" + strfile
+        if os.path.isfile(strFilePath):
+          lstFiles.append(("attachment",(strfile, open(strFilePath, 'rb'))))
+        else:
+          LogEntry("Unable to find attachment file {}".format(strFilePath), 2, True)
+
       dictBody = {}
       dictBody["creditor"] = {}
       dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
@@ -618,7 +647,7 @@ def main():
 
       strMethod = "post"
       strURL = "{}expenses".format(strBaseURL)
-      APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
+      APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody, lstFiles)
       print("APIResp: {}".format(APIResp))
 
 
