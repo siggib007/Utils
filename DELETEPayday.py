@@ -495,6 +495,7 @@ def main():
       LogEntry("No expenses found, exiting")
       CleanExit("No expenses found, exiting")
     for dictExpense in dictExpenses["expenses"]:
+      LogEntry("Deleting expense {}".format(dictExpense["id"]))
       strURL = "{}expenses/{}".format(strBaseURL,dictExpense["id"])
       APIResp = MakeAPICall(strURL, dictHeader, strMethod)
       LogEntry("APIResp: {}".format(APIResp))

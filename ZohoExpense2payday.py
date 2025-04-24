@@ -219,6 +219,9 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", lstFiles=[], strU
         WebRequest = requests.post(
             strURL, headers=dictHeader, verify=False, proxies=dictProxies, files=lstFiles)
       LogEntry("post executed", 4)
+    if strMethod.lower() == "delete":
+      WebRequest = requests.delete(strURL, headers=dictHeader, verify=False, proxies=dictProxies)
+
   except Exception as err:
     dictReturn["condition"] = "Issue with API call"
     dictReturn["errormsg"] = err
