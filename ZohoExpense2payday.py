@@ -95,7 +95,7 @@ def CleanExit(strCause):
   """
   LogEntry("{} is exiting abnormally on {}: {}".format(
     strScriptName, strScriptHost, strCause), 0)
-
+  objFileIn.close()
   objLogOut.close()
   print("objLogOut closed")
 
@@ -407,6 +407,7 @@ def processConf():
 
 def main():
   global objLogOut
+  global objFileIn
   global strScriptName
   global strScriptHost
   global strBaseDir
@@ -588,6 +589,17 @@ def main():
       strAcctCode = dictAccount["code"]
       dictAcctRef[strAcctCode] = strAcctID
 
+  lstBadAccctCodes = []
+  objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
+  for dictTemp in objReader:
+    if dictTemp["Category Account Code"] not in dictAcctRef:
+      if dictTemp["Category Account Code"] not in lstBadAccctCodes:
+        lstBadAccctCodes.append(dictTemp["Category Account Code"])
+  if len(lstBadAccctCodes) > 0:
+      CleanExit("Unable to find the following account codes in the list of accounts: {}".format(lstBadAccctCodes))
+  objFileIn.close()
+  objFileIn = GetFileHandle(strInfile, "r")
+
   strURL = "{}expenses/paymenttypes".format(strBaseURL)
   APIResp = MakeAPICall(strURL, dictHeader, strMethod)
   if APIResp[0]["Success"] == False:
@@ -615,6 +627,12 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
+    if dictTemp["Category Account Code"] in dictAcctRef:
+      strAcctID = dictAcctRef[dictTemp["Category Account Code"]]
+    else:
+      LogEntry("Unable to find account code {} in the list of accounts".format(dictTemp["Category Account Code"]))
+      continue
+    strDescription = dictTemp["Expense Description"]
     if dictTemp["Tax Percentage"] == "":
       dictTemp["Tax Percentage"] = 0.0
     if strEntryID == dictTemp["Entry Number"]:
@@ -623,7 +641,7 @@ def main():
       dictLine["description"] = strDescription
       dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
       dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
-      dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+      dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
     else:
       if strEntryID != "":
@@ -669,8 +687,10 @@ def main():
       dictLine["description"] = strDescription
       dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
       dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
-      dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+      dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
+  objFileIn.close()
+  objLogOut.close()
 
 
 
