@@ -346,6 +346,7 @@ def processConf():
   global strProxy
   global csvDelim
   global bDeductable
+  global strEmployeeID
 
   strBaseURL = None
   strClientID = None
@@ -354,6 +355,7 @@ def processConf():
   strInfile = None
   strProxy = None
   bDeductable = True
+  strEmployeeID = "name"
 
   if os.path.isfile(strConf_File):
     LogEntry ("Configuration File {} exists".format(strConf_File))
@@ -401,6 +403,9 @@ def processConf():
           csvDelim = strValue
       if strVarName == "DEDUCTABLE":
         bDeductable = strValue.lower() == "true"
+      if strVarName == "EMPLOYEE_ID":
+        if strValue != "":
+          strEmployeeID = strValue
 
 
   LogEntry ("Done processing configuration, moving on")
@@ -424,6 +429,7 @@ def main():
   global strProxy
   global csvDelim
   global bDeductable
+  global strEmployeeID
 
   lstSysArg = sys.argv
   strInfile = ""
@@ -470,6 +476,7 @@ def main():
   objParser.add_argument("-v", "--verbosity", action="count", default=1, help="Verbose output, vv level 2 vvvv level 4")
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file, where you can configure API keys, and other items", default=strDefConf)
   objParser.add_argument("-u", "--URL", type=str, help="Base URL for API calls")
+  objParser.add_argument("-e", "--employee", type=str, help="How to identify the employee, either by name or kennitala. Default is name")
   args = objParser.parse_args()
   strConf_File = args.config
   iVerbose = args.verbosity
@@ -494,6 +501,13 @@ def main():
     strClientSecret = FetchEnv("CLIENT_SECRET")
   if strClientSecret == "":
       strClientSecret = None
+  if FetchEnv("EMPLOYEE_ID") is not None:
+    strEmployeeID = FetchEnv("EMPLOYEE_ID")
+  if args.employee is not None:
+    strEmployeeID = args.employee
+
+  if strEmployeeID.lower() not in ["name","kennitala","kt"]:
+    CleanExit("Employee ID must be either name, kt or kennitala")
 
   if strBaseURL is None or strClientID is None or strClientSecret is None:
     CleanExit("No URL or API auth config, exiting")
@@ -552,9 +566,11 @@ def main():
   else:
       dictProxies = {}
 
-  strKennitala = getInput("Please enter the kennitala of the user to be used: ")
-  while not ValidateKT(strKennitala):
-    strKennitala = getInput("Invalid Kennital. Please enter a valid kennitala of the user to be used: ")
+  strKennitala = ""
+  if strEmployeeID.lower() != "name":
+    strKennitala = getInput("Please enter the kennitala of the user to be used: ")
+    while not ValidateKT(strKennitala):
+      strKennitala = getInput("Invalid Kennital. Please enter a valid kennitala of the user to be used: ")
   if strBaseURL[-1:] != "/":
     strBaseURL += "/"
   strMethod = "post"
@@ -627,6 +643,8 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
+    if not dictTemp["Is Reimbursable"]:
+      continue
     if dictTemp["Category Account Code"] in dictAcctRef:
       strAcctID = dictAcctRef[dictTemp["Category Account Code"]]
     else:
@@ -647,14 +665,15 @@ def main():
       if strEntryID != "":
         lstFiles = []
         APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody, lstFiles)
-        print("APIResp: {}".format(APIResp))
+        LogEntry("APIResp: {}".format(APIResp),5)
+        if APIResp[0]["Success"] == False:
+          LogEntry(APIResp)
+        else:
+          LogEntry(APIResp[0])
+
       strEntryID = dictTemp["Entry Number"]
-      print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
-          dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
-          dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
-          dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
-          dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
-          ))
+      LogEntry("Working on: {} - {} - {}".format(
+          dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
       lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
       lstFiles = []
       for strfile in lstAttachments:
@@ -669,7 +688,10 @@ def main():
         dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
         strDescription = dictTemp["Expense Description"]
       else:
-        dictBody["creditor"]["ssn"] = strKennitala
+        if strEmployeeID.lower() == "name":
+          dictBody["creditor"]["Name"] = dictTemp["Employee Name"]
+        else:
+          dictBody["creditor"]["ssn"] = strKennitala
         strDescription= "Mileage for {} - {} {} @ {}".format(dictTemp["Vehicle Name"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"])
         dictBody["comment"] = dictTemp["Expense Description"]
 
@@ -679,8 +701,7 @@ def main():
       dictBody["paidDate"] = dictTemp["Expense Item Date"]
       dictBody["paymentType"] = {}
       dictBody["paymentType"]["id"] = strPayTypeID
-      #dictBody["reference"] = dictTemp["Report Number"]
-      dictBody["reference"] = "Another Import Test"
+      dictBody["reference"] = dictTemp["Report Number"]
       dictBody["lines"] = []
       dictLine = {}
       dictLine["quantity"] = 1
@@ -689,8 +710,11 @@ def main():
       dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
       dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
+
   objFileIn.close()
+  LogEntry("Done processing file {}, file handle closed".format(strInfile))
   objLogOut.close()
+  print("Log file closed")
 
 
 
