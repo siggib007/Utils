@@ -609,56 +609,70 @@ def main():
   strPayTypeID = dictPaymentTypes[int(strPayType)]["id"]
   LogEntry("Payment type ID {}: {}, was selected".format(strPayType,strPayTypeID))
 
+  strMethod = "post"
+  strURL = "{}expenses".format(strBaseURL)
+
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
-    print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
-        dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
-        dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
-        dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
-        dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
-        ))
-    lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
-    lstFiles = []
-    for strfile in lstAttachments:
-      strFilePath = strAttachments + "/" + strfile
-      if os.path.isfile(strFilePath):
-        lstFiles.append(("attachment",(strfile, open(strFilePath, 'rb'))))
-      else:
-        LogEntry("Unable to find attachment file {}".format(strFilePath), 2, True)
-
-    dictBody = {}
-    dictBody["creditor"] = {}
-    if dictTemp["Mileage Type"] == "NonMileage":
-      dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
-      strDescription = dictTemp["Expense Description"]
+    if dictTemp["Tax Percentage"] == "":
+      dictTemp["Tax Percentage"] = 0.0
+    if strEntryID == dictTemp["Entry Number"]:
+      dictLine = {}
+      dictLine["quantity"] = 1
+      dictLine["description"] = strDescription
+      dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
+      dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+      dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+      dictBody["lines"].append(dictLine)
     else:
-      dictBody["creditor"]["ssn"] = strKennitala
-      strDescription= "Mileage for {} - {}{} @ {}".format(dictTemp["Vehicle Name"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"])
-      dictBody["comment"] = dictTemp["Expense Description"]
+      if strEntryID != "":
+        lstFiles = []
+        APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody, lstFiles)
+        print("APIResp: {}".format(APIResp))
+      strEntryID = dictTemp["Entry Number"]
+      print("Working on: {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {} - {}".format(
+          dictTemp["Expense Description"],dictTemp["Expense Item Date"], dictTemp["Is Reimbursable"], dictTemp["Category Account Code"],
+          dictTemp["Entry Number"],dictTemp["Mileage Type"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"],
+          dictTemp["Vehicle Name"],dictTemp["Expense Total Amount (in Reimbursement Currency)"],
+          dictTemp["Expense Category"],dictTemp["Merchant Name"],dictTemp["Report Number"],dictTemp["Tax Percentage"]
+          ))
+      lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
+      lstFiles = []
+      for strfile in lstAttachments:
+        strFilePath = strAttachments + "/" + strfile
+        if os.path.isfile(strFilePath):
+          lstFiles.append(("attachment",(strfile, open(strFilePath, 'rb'))))
+        else:
+          LogEntry("Unable to find attachment file {}".format(strFilePath), 2, True)
+      dictBody = {}
+      dictBody["creditor"] = {}
+      if dictTemp["Mileage Type"] == "NonMileage":
+        dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
+        strDescription = dictTemp["Expense Description"]
+      else:
+        dictBody["creditor"]["ssn"] = strKennitala
+        strDescription= "Mileage for {} - {} {} @ {}".format(dictTemp["Vehicle Name"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"])
+        dictBody["comment"] = dictTemp["Expense Description"]
 
-    dictBody["date"] = dictTemp["Expense Item Date"]
-    dictBody["deductible"] = bDeductable
-    dictBody["status"] = "PAID"
-    dictBody["paidDate"] = dictTemp["Expense Item Date"]
-    dictBody["paymentType"] = {}
-    dictBody["paymentType"]["id"] = strPayTypeID
-    #dictBody["reference"] = dictTemp["Report Number"]
-    dictBody["reference"] = "Another Import Test"
-    dictBody["lines"] = []
-    dictLine = {}
-    dictLine["quantity"] = 1
-    dictLine["description"] = strDescription
-    dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-    dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
-    dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
-    dictBody["lines"].append(dictLine)
+      dictBody["date"] = dictTemp["Expense Item Date"]
+      dictBody["deductible"] = bDeductable
+      dictBody["status"] = "PAID"
+      dictBody["paidDate"] = dictTemp["Expense Item Date"]
+      dictBody["paymentType"] = {}
+      dictBody["paymentType"]["id"] = strPayTypeID
+      #dictBody["reference"] = dictTemp["Report Number"]
+      dictBody["reference"] = "Another Import Test"
+      dictBody["lines"] = []
+      dictLine = {}
+      dictLine["quantity"] = 1
+      dictLine["description"] = strDescription
+      dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
+      dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+      dictLine["accountId"] = dictAcctRef[dictTemp["Category Account Code"]]
+      dictBody["lines"].append(dictLine)
 
-    strMethod = "post"
-    strURL = "{}expenses".format(strBaseURL)
-    lstFiles = []
-    APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody, lstFiles)
-    print("APIResp: {}".format(APIResp))
+
 
 
 if __name__ == '__main__':
