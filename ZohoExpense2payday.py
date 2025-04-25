@@ -679,20 +679,22 @@ def main():
           dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
       lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
       lstFiles = []
-      for strfile in lstAttachments:
+      for index,strfile in enumerate(lstAttachments):
         strFilePath = strAttachments + "/" + strfile
         if os.path.isfile(strFilePath):
-          lstFiles.append(("attachment",(strfile, open(strFilePath, 'rb'))))
+          lstFiles.append(("attachment"+str(index),(strfile, open(strFilePath, 'rb'))))
         else:
           LogEntry("Unable to find attachment file {}".format(strFilePath), 2, True)
       dictBody = {}
       dictBody["creditor"] = {}
       if dictTemp["Mileage Type"] == "NonMileage":
         dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
+        dictBody["creditor"]["ssn"] = dictTemp["Expense.CF.Kennitala"]
         strDescription = dictTemp["Expense Description"]
       else:
         if strEmployeeID.lower() == "name":
           dictBody["creditor"]["Name"] = dictTemp["Employee Name"]
+          dictBody["creditor"]["ssn"] = dictTemp["Employee Number"]
         else:
           dictBody["creditor"]["ssn"] = strKennitala
         strDescription= "Mileage for {} - {} {} @ {}".format(dictTemp["Vehicle Name"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"])
