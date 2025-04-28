@@ -489,18 +489,20 @@ def main():
   while iPage <= iPages:
     dictParams = {}
     dictParams["page"] = iPage
-    iPage += 1
     strParams = urlparse.urlencode(dictParams)
     strURL = strBaseURL + "expenses?" + strParams
     APIResp = MakeAPICall(strURL, dictHeader, strMethod)
     if APIResp[0]["Success"] == False:
       CleanExit(APIResp)
     else:
+      if "pages" not in APIResp[1]:
+        CleanExit("No pages found, exiting")
       iPages = APIResp[1]["pages"]
+      LogEntry("Page {} of {}".format(iPage, iPages), 2)
+      iPage += 1
       dictExpenses = APIResp[1]
       strMethod = "delete"
       if "expenses" not in dictExpenses:
-        LogEntry("No expenses found, exiting")
         CleanExit("No expenses found, exiting")
       for dictExpense in dictExpenses["expenses"]:
         LogEntry("Deleting expense {}".format(dictExpense["id"]))
