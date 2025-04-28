@@ -482,23 +482,31 @@ def main():
   else:
     strAccessToken = APIResp[1]["accessToken"]
 
+  iPage = 1
+  iPages = 1
   strMethod = "get"
   dictHeader["Authorization"] = "Bearer {}".format(strAccessToken)
-  strURL = "{}expenses".format(strBaseURL)
-  APIResp = MakeAPICall(strURL, dictHeader, strMethod)
-  if APIResp[0]["Success"] == False:
-    CleanExit(APIResp)
-  else:
-    dictExpenses = APIResp[1]
-    strMethod = "delete"
-    if "expenses" not in dictExpenses:
-      LogEntry("No expenses found, exiting")
-      CleanExit("No expenses found, exiting")
-    for dictExpense in dictExpenses["expenses"]:
-      LogEntry("Deleting expense {}".format(dictExpense["id"]))
-      strURL = "{}expenses/{}".format(strBaseURL,dictExpense["id"])
-      APIResp = MakeAPICall(strURL, dictHeader, strMethod)
-      LogEntry("APIResp: {}".format(APIResp))
+  while iPage <= iPages:
+    dictParams = {}
+    dictParams["page"] = iPage
+    iPage += 1
+    strParams = urlparse.urlencode(dictParams)
+    strURL = strBaseURL + "expenses?" + strParams
+    APIResp = MakeAPICall(strURL, dictHeader, strMethod)
+    if APIResp[0]["Success"] == False:
+      CleanExit(APIResp)
+    else:
+      iPages = APIResp[1]["pages"]
+      dictExpenses = APIResp[1]
+      strMethod = "delete"
+      if "expenses" not in dictExpenses:
+        LogEntry("No expenses found, exiting")
+        CleanExit("No expenses found, exiting")
+      for dictExpense in dictExpenses["expenses"]:
+        LogEntry("Deleting expense {}".format(dictExpense["id"]))
+        strURL = "{}expenses/{}".format(strBaseURL,dictExpense["id"])
+        APIResp = MakeAPICall(strURL, dictHeader, strMethod)
+        LogEntry("APIResp: {}".format(APIResp))
 
 
 if __name__ == '__main__':
