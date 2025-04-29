@@ -668,9 +668,12 @@ def main():
       dictBody["lines"].append(dictLine)
     else:
       if strEntryID != "":
-        str_Body = json.dumps(dictBody, indent=2)
-        dictMultipart['data'] = (None,str_Body,'application/json')
-        APIResp = MakeAPICall(strURL, dictHeader, strMethod, "", dictMultipart)
+        if len(dictMultipart) > 0:
+          str_Body = json.dumps(dictBody, indent=2)
+          dictMultipart['data'] = (None,str_Body,'application/json')
+          APIResp = MakeAPICall(strURL, dictHeader, strMethod, "", dictMultipart)
+        else:
+          APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
         LogEntry("APIResp: {}".format(APIResp),5)
         if APIResp[0]["Success"] == False:
           LogEntry(APIResp)
@@ -680,7 +683,7 @@ def main():
       strEntryID = dictTemp["Entry Number"]
       LogEntry("Working on: {} - {} - {}".format(
           dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
-      lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
+      lstAttachments = [] #ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
 
       for index,strfile in enumerate(lstAttachments):
         strFilePath = strAttachments + "/" + strfile
@@ -719,9 +722,12 @@ def main():
       dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
 
-  str_Body = json.dumps(dictBody, indent=2)
-  dictMultipart['data'] = (None,str_Body,'application/json')
-  APIResp = MakeAPICall(strURL, dictHeader, strMethod, "", dictMultipart)
+  if len(dictMultipart) > 0:
+    str_Body = json.dumps(dictBody, indent=2)
+    dictMultipart['data'] = (None,str_Body,'application/json')
+    APIResp = MakeAPICall(strURL, dictHeader, strMethod, "", dictMultipart)
+  else:
+    APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
   LogEntry("APIResp: {}".format(APIResp),5)
   if APIResp[0]["Success"] == False:
     LogEntry(APIResp)
