@@ -683,7 +683,7 @@ def main():
       strEntryID = dictTemp["Entry Number"]
       LogEntry("Working on: {} - {} - {}".format(
           dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
-      lstAttachments = [] #ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
+      lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
 
       for index,strfile in enumerate(lstAttachments):
         strFilePath = strAttachments + "/" + strfile
