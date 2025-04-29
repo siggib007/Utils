@@ -142,7 +142,7 @@ def isInt(CheckValue):
     fTemp = "NULL"
   return fTemp != "NULL"
 
-def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", lstFiles=[], strUser="", strPWD=""):
+def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", objFiles=[], strUser="", strPWD=""):
   """
   Handles the actual communication with the API, has a backoff mechanism
   MinQuiet defines how many seconds must elapse between each API call.
@@ -152,7 +152,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", lstFiles=[], strU
     dictHeader: Simple string with the header to pass along with the call
     strMethod: Simple string. Call method such as GET, PUT, POST, etc
     dictPayload: Optional. Any payload to send along in the appropriate structure and format
-    lstFiles: Optional. List of files (full absolute paths) to be uploaded, if any
+    objFiles: Optional. List of files (full absolute paths) or multipart object to be uploaded, if any
     User: Optional. Simple string. Username to use in basic Auth
     Password: Simple string. Password to use in basic auth
   Return:
@@ -204,20 +204,21 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", lstFiles=[], strU
             dictTmp["clientSecret"] = dictTmp["clientSecret"][:2]+"*********"
         if strUser != "":
           LogEntry("I have none blank credentials so I'm doing basic auth", 3)
-          LogEntry("with user auth and payload of: {}".format(dictTmp), 4)
+          LogEntry("with user auth, payload of: {} and files object of {}".format(dictTmp,objFiles), 4)
           WebRequest = requests.post(strURL, json=dictPayload, timeout=iTimeOut,
                                       headers=dictHeader, auth=(strUser, strPWD),
-                                      verify=False, proxies=dictProxies,files=lstFiles)
+                                      verify=False, proxies=dictProxies,files=objFiles)
         else:
           LogEntry("credentials are blank, proceeding without auth", 3)
-          LogEntry("with payload of: {}".format(dictTmp), 4)
+          LogEntry("with payload of: {} and files object of {}".format(dictTmp,objFiles), 4)
           WebRequest = requests.post(
               strURL, json=dictPayload, timeout=iTimeOut, headers=dictHeader,
-              files=lstFiles, verify=False, proxies=dictProxies)
+              files=objFiles, verify=False, proxies=dictProxies)
       else:
         LogEntry("No payload, doing a simple post", 3)
+        LogEntry("with files object of: {}".format(objFiles), 4)
         WebRequest = requests.post(
-            strURL, headers=dictHeader, verify=False, proxies=dictProxies, files=lstFiles)
+            strURL, headers=dictHeader, verify=False, proxies=dictProxies, files=objFiles)
       LogEntry("post executed", 4)
     if strMethod.lower() == "delete":
       WebRequest = requests.delete(strURL, headers=dictHeader, verify=False, proxies=dictProxies)
