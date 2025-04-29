@@ -239,7 +239,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", objFiles=[], strU
 
   if iStatusCode not in (200,201,204):
     strErrCode += str(iStatusCode)
-    strErrText += "HTTP Error"
+    strErrText += WebRequest.text
     LogEntry("HTTP Error: {}".format(iStatusCode), 3)
     LogEntry("Response: {}".format(WebRequest.content), 4)
   if strErrCode != "":
@@ -689,6 +689,7 @@ def main():
         else:
           LogEntry("Unable to find attachment file {}".format(strFilePath), 2, True)
       dictBody = {}
+      dictBody["status"] = "PAID"
       dictBody["creditor"] = {}
       if dictTemp["Mileage Type"] == "NonMileage":
         dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
@@ -705,7 +706,6 @@ def main():
 
       dictBody["date"] = dictTemp["Expense Item Date"]
       dictBody["deductible"] = bDeductable
-      dictBody["status"] = "PAID"
       dictBody["paidDate"] = dictTemp["Expense Item Date"]
       dictBody["paymentType"] = {}
       dictBody["paymentType"]["id"] = strPayTypeID
@@ -714,8 +714,8 @@ def main():
       dictLine = {}
       dictLine["quantity"] = 1
       dictLine["description"] = strDescription
-      dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-      dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+      dictLine["unitPriceIncludingVat"] = float(dictTemp["Expense Total Amount (in Reimbursement Currency)"])
+      dictLine["vatPercentage"] = float(dictTemp["Tax Percentage"])
       dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
 
