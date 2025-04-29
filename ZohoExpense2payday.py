@@ -646,6 +646,7 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
+    dictMultipart = {}
     if not dictTemp["Is Reimbursable"]:
       continue
     if dictTemp["Category Account Code"] in dictAcctRef:
@@ -666,8 +667,9 @@ def main():
       dictBody["lines"].append(dictLine)
     else:
       if strEntryID != "":
-        lstFiles = []
-        APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody, lstFiles)
+        str_Body = json.dumps(dictBody, indent=2)
+        dictMultipart['data'] = (None,str_Body,'application/json')
+        APIResp = MakeAPICall(strURL, dictHeader, strMethod, "", dictMultipart)
         LogEntry("APIResp: {}".format(APIResp),5)
         if APIResp[0]["Success"] == False:
           LogEntry(APIResp)
@@ -678,11 +680,11 @@ def main():
       LogEntry("Working on: {} - {} - {}".format(
           dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
       lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
-      lstFiles = []
+
       for index,strfile in enumerate(lstAttachments):
         strFilePath = strAttachments + "/" + strfile
         if os.path.isfile(strFilePath):
-          lstFiles.append(("attachment"+str(index),(strfile, open(strFilePath, 'rb'))))
+          dictMultipart["attachment"+str(index)] = (strfile, open(strFilePath, 'rb'),'application/pdf')
         else:
           LogEntry("Unable to find attachment file {}".format(strFilePath), 2, True)
       dictBody = {}
@@ -716,6 +718,14 @@ def main():
       dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
 
+  str_Body = json.dumps(dictBody, indent=2)
+  dictMultipart['data'] = (None,str_Body,'application/json')
+  APIResp = MakeAPICall(strURL, dictHeader, strMethod, "", dictMultipart)
+  LogEntry("APIResp: {}".format(APIResp),5)
+  if APIResp[0]["Success"] == False:
+    LogEntry(APIResp)
+  else:
+    LogEntry(APIResp[0])
   objFileIn.close()
   LogEntry("Done processing file {}, file handle closed".format(strInfile))
   objLogOut.close()
