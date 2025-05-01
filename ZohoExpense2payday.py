@@ -252,7 +252,7 @@ def MakeAPICall(strURL, dictHeader, strMethod, dictPayload="", objFiles=[], strU
     return ({"Success": False}, [dictReturn])
   else:
     if "<html>" in WebRequest.text[:99] or WebRequest.text== "":
-      return ({"Success": True}, WebRequest.text)
+      return ({"Success": False}, WebRequest.text[:99])
     try:
       return ({"Success": True}, WebRequest.json())
     except Exception as err:
