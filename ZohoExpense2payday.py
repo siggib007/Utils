@@ -593,8 +593,6 @@ def main():
     strBaseURL += "/"
   strMethod = "post"
   dictHeader = {}
-  dictHeader["Content-type"] = "application/json"
-  dictHeader["Accept"] = "application/json"
   dictHeader["Api-Version"] = "alpha"
   dictHeader["Application"] = strScriptName
   dictHeader["User-Agent"] = "Python/{} {}".format(strVersion, strScriptName)
@@ -663,7 +661,6 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictTemp in objReader:
-    dictMultipart = {}
     if not dictTemp["Is Reimbursable"]:
       continue
     if dictTemp["Category Account Code"] in dictAcctRef:
@@ -700,7 +697,7 @@ def main():
       LogEntry("Working on: {} - {} - {}".format(
           dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
       lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
-
+      dictMultipart = {}
       for index,strfile in enumerate(lstAttachments):
         strFilePath = strAttachments + "/" + strfile
         if os.path.isfile(strFilePath):
