@@ -456,8 +456,6 @@ def main():
   chkdir(strLogDir)
 
   strScriptName = os.path.basename(sys.argv[0])
-  iLoc = strScriptName.rfind(".")
-  strLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
   strVersion = "{0}.{1}.{2}".format(
       sys.version_info[0], sys.version_info[1], sys.version_info[2])
   strScriptHost = platform.node().upper()
@@ -467,10 +465,10 @@ def main():
   print("Running from: {}".format(strRealPath))
   dtNow = time.strftime("%A %d %B %Y %H:%M:%S %Z")
   print("The time now is {}".format(dtNow))
-  print("Logs saved to {}".format(strLogFile))
-  objLogOut = open(strLogFile, "w", 1)
   iLoc = lstSysArg[0].rfind(".")
   strDefConf = lstSysArg[0][:iLoc] + ".ini"
+  iLoc = strScriptName.rfind(".")
+  strDefLogFile = strLogDir + strScriptName[:iLoc] + ISO + ".log"
 
   objParser = argparse.ArgumentParser(description="Script to transfer expense items from Zoho expense to Payday. All items overwrite configuration file settings as well as environment variables.")
   objParser.add_argument("-i", "--input", type=str, help="Path to Expense file to be processed")
@@ -481,11 +479,18 @@ def main():
   objParser.add_argument("-c", "--config",type=str, help="Path to configuration file, where you can configure API keys, and other items", default=strDefConf)
   objParser.add_argument("-u", "--URL", type=str, help="Base URL for API calls")
   objParser.add_argument("-e", "--employee", type=str, help="How to identify the employee, either by name or kennitala. Default is name")
+  objParser.add_argument("-x", "--proxy", type=str, help="Proxy to use for API calls")
+  objParser.add_argument("-l", "--log", type=str, help="Path to log file, default is the same directory as the script", default=strDefLogFile)
   args = objParser.parse_args()
+  if args.log is not None:
+    strLogFile = args.log
   strConf_File = args.config
   iVerbose = args.verbosity
   LogEntry("Verbosity set to {}".format(iVerbose))
   LogEntry("conf file set to: {}".format(strConf_File))
+  print("Logs saved to {}".format(strLogFile))
+  objLogOut = open(strLogFile, "w", 1)
+  objLogOut.write("Starting up script {} on {}\n".format(strScriptName, strScriptHost))
   processConf()
 
   if args.input is not None:
@@ -561,14 +566,16 @@ def main():
   else:
     CleanExit("only able to process csv files. Unable to process {} files".format(strFileExt))
 
+  strProxy = None
+  dictProxies = {}
   if FetchEnv("PROXY") is not None:
-      strProxy = os.getenv("PROXY")
-      dictProxies = {}
-      dictProxies["http"] = strProxy
-      dictProxies["https"] = strProxy
-      LogEntry("Proxy has been configured for {}".format(strProxy), 5)
-  else:
-      dictProxies = {}
+    strProxy = os.getenv("PROXY")
+  if args.proxy is not None:
+    strProxy = args.proxy
+  if strProxy is not None:
+    dictProxies["http"] = strProxy
+    dictProxies["https"] = strProxy
+    LogEntry("Proxy has been configured for {}".format(strProxy), 5)
 
   strKennitala = ""
   if strEmployeeID.lower() != "name":
