@@ -625,10 +625,10 @@ def main():
 
   lstBadAccctCodes = []
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
-  for dictTemp in objReader:
-    if dictTemp["Category Account Code"] not in dictAcctRef:
-      if dictTemp["Category Account Code"] not in lstBadAccctCodes:
-        lstBadAccctCodes.append(dictTemp["Category Account Code"])
+  for dictReader in objReader:
+    if dictReader["Category Account Code"] not in dictAcctRef:
+      if dictReader["Category Account Code"] not in lstBadAccctCodes:
+        lstBadAccctCodes.append(dictReader["Category Account Code"])
   if len(lstBadAccctCodes) > 0:
       CleanExit("Unable to find the following account codes in the list of accounts: {}".format(lstBadAccctCodes))
   objFileIn.close()
@@ -660,23 +660,23 @@ def main():
 
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
-  for dictTemp in objReader:
-    if not dictTemp["Is Reimbursable"]:
+  for dictReader in objReader:
+    if not dictReader["Is Reimbursable"]:
       continue
-    if dictTemp["Category Account Code"] in dictAcctRef:
-      strAcctID = dictAcctRef[dictTemp["Category Account Code"]]
+    if dictReader["Category Account Code"] in dictAcctRef:
+      strAcctID = dictAcctRef[dictReader["Category Account Code"]]
     else:
-      LogEntry("Unable to find account code {} in the list of accounts".format(dictTemp["Category Account Code"]))
+      LogEntry("Unable to find account code {} in the list of accounts".format(dictReader["Category Account Code"]))
       continue
-    strDescription = dictTemp["Expense Description"]
-    if dictTemp["Tax Percentage"] == "":
-      dictTemp["Tax Percentage"] = 0.0
-    if strEntryID == dictTemp["Entry Number"]:
+    strDescription = dictReader["Expense Description"]
+    if dictReader["Tax Percentage"] == "":
+      dictReader["Tax Percentage"] = 0.0
+    if strEntryID == dictReader["Entry Number"]:
       dictLine = {}
       dictLine["quantity"] = 1
       dictLine["description"] = strDescription
-      dictLine["unitPriceIncludingVat"] = dictTemp["Expense Total Amount (in Reimbursement Currency)"]
-      dictLine["vatPercentage"] = dictTemp["Tax Percentage"]
+      dictLine["unitPriceIncludingVat"] = float(dictReader["Expense Total Amount (in Reimbursement Currency)"])
+      dictLine["vatPercentage"] = float(dictReader["Tax Percentage"])
       dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
     else:
@@ -693,10 +693,10 @@ def main():
         else:
           LogEntry(APIResp[0])
 
-      strEntryID = dictTemp["Entry Number"]
+      strEntryID = dictReader["Entry Number"]
       LogEntry("Working on: {} - {} - {}".format(
-          dictTemp["Expense Description"],dictTemp["Expense Category"],dictTemp["Expense Item Date"]          ))
-      lstAttachments = ListAttachments(strAttachments, dictTemp["Entry Number"] + "*")
+          dictReader["Expense Description"],dictReader["Expense Category"],dictReader["Expense Item Date"]          ))
+      lstAttachments = ListAttachments(strAttachments, dictReader["Entry Number"] + "*")
       dictMultipart = {}
       for index,strfile in enumerate(lstAttachments):
         strFilePath = strAttachments + "/" + strfile
@@ -707,31 +707,31 @@ def main():
       dictBody = {}
       dictBody["status"] = "PAID"
       dictBody["creditor"] = {}
-      if dictTemp["Mileage Type"] == "NonMileage":
-        dictBody["creditor"]["Name"] = dictTemp["Merchant Name"]
-        dictBody["creditor"]["ssn"] = dictTemp["Expense.CF.Kennitala"]
-        strDescription = dictTemp["Expense Description"]
+      if dictReader["Mileage Type"] == "NonMileage":
+        dictBody["creditor"]["Name"] = dictReader["Merchant Name"]
+        dictBody["creditor"]["ssn"] = dictReader["Expense.CF.Kennitala"]
+        strDescription = dictReader["Expense Description"]
       else:
         if strEmployeeID.lower() == "name":
-          dictBody["creditor"]["Name"] = dictTemp["Employee Name"]
-          dictBody["creditor"]["ssn"] = dictTemp["Employee Number"]
+          dictBody["creditor"]["Name"] = dictReader["Employee Name"]
+          dictBody["creditor"]["ssn"] = dictReader["Employee Number"]
         else:
           dictBody["creditor"]["ssn"] = strKennitala
-        strDescription= "Mileage for {} - {} {} @ {}".format(dictTemp["Vehicle Name"],dictTemp["Distance"],dictTemp["Mileage Unit"],dictTemp["Mileage Rate"])
-        dictBody["comment"] = dictTemp["Expense Description"]
+        strDescription= "Mileage for {} - {} {} @ {}".format(dictReader["Vehicle Name"],dictReader["Distance"],dictReader["Mileage Unit"],dictReader["Mileage Rate"])
+        dictBody["comment"] = dictReader["Expense Description"]
 
-      dictBody["date"] = dictTemp["Expense Item Date"]
+      dictBody["date"] = dictReader["Expense Item Date"]
       dictBody["deductible"] = bDeductable
-      dictBody["paidDate"] = dictTemp["Expense Item Date"]
+      dictBody["paidDate"] = dictReader["Expense Item Date"]
       dictBody["paymentType"] = {}
       dictBody["paymentType"]["id"] = strPayTypeID
-      dictBody["reference"] = dictTemp["Report Number"]
+      dictBody["reference"] = dictReader["Report Number"]
       dictBody["lines"] = []
       dictLine = {}
       dictLine["quantity"] = 1
       dictLine["description"] = strDescription
-      dictLine["unitPriceIncludingVat"] = float(dictTemp["Expense Total Amount (in Reimbursement Currency)"])
-      dictLine["vatPercentage"] = float(dictTemp["Tax Percentage"])
+      dictLine["unitPriceIncludingVat"] = float(dictReader["Expense Total Amount (in Reimbursement Currency)"])
+      dictLine["vatPercentage"] = float(dictReader["Tax Percentage"])
       dictLine["accountId"] = strAcctID
       dictBody["lines"].append(dictLine)
 
