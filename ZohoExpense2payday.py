@@ -596,6 +596,8 @@ def main():
   dictHeader["Content-type"] = "application/json"
   dictHeader["Accept"] = "application/json"
   dictHeader["Api-Version"] = "alpha"
+  dictHeader["Application"] = strScriptName
+  dictHeader["User-Agent"] = "Python/{} {}".format(strVersion, strScriptName)
 
   dictBody = {}
   dictBody["clientId"] = strClientID
