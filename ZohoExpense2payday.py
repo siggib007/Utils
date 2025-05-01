@@ -570,7 +570,7 @@ def main():
   else:
     CleanExit("only able to process csv files. Unable to process {} files".format(strFileExt))
 
-  strProxy = None
+
   dictProxies = {}
   if FetchEnv("PROXY") is not None:
     strProxy = os.getenv("PROXY")
