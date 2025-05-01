@@ -95,7 +95,10 @@ def CleanExit(strCause):
   """
   LogEntry("{} is exiting abnormally on {}: {}".format(
     strScriptName, strScriptHost, strCause), 0)
-  objFileIn.close()
+  if objFileIn:
+    objFileIn.close()
+    LogEntry("objFileIn closed")
+
   objLogOut.close()
   print("objLogOut closed")
 
@@ -438,6 +441,7 @@ def main():
   lstSysArg = sys.argv
   strInfile = ""
   strAttachments = ""
+  objFileIn = None
 
   ISO = time.strftime("-%Y-%m-%d-%H-%M-%S")
 
@@ -486,11 +490,11 @@ def main():
     strLogFile = args.log
   strConf_File = args.config
   iVerbose = args.verbosity
-  LogEntry("Verbosity set to {}".format(iVerbose))
-  LogEntry("conf file set to: {}".format(strConf_File))
   print("Logs saved to {}".format(strLogFile))
   objLogOut = open(strLogFile, "w", 1)
-  objLogOut.write("Starting up script {} on {}\n".format(strScriptName, strScriptHost))
+  LogEntry("Starting up script {} on {}\n".format(strScriptName, strScriptHost))
+  LogEntry("Verbosity set to {}".format(iVerbose))
+  LogEntry("conf file set to: {}".format(strConf_File))
   processConf()
 
   if args.input is not None:
@@ -537,12 +541,12 @@ def main():
     bDeductable = args.deductable.lower() == "true"
 
   if not os.path.exists(strAttachments):
-      CleanExit("Attachments path {} does not exist".format(strAttachments))
+    CleanExit("Attachments path {} does not exist".format(strAttachments))
   strAttachments = strAttachments.replace("\\", "/")
 
   if not os.path.exists(strInfile):
-      LogEntry("Input file {} does not exist".format(strInfile))
-      strInfile = ""
+    LogEntry("Input file {} does not exist".format(strInfile))
+    strInfile = ""
 
   if strInfile == "" or args.prompt:
     if btKinterOK:
@@ -575,7 +579,10 @@ def main():
   if strProxy is not None:
     dictProxies["http"] = strProxy
     dictProxies["https"] = strProxy
-    LogEntry("Proxy has been configured for {}".format(strProxy), 5)
+    LogEntry("Proxy has been configured for {}".format(strProxy))
+  else:
+    LogEntry("No proxy has been configured")
+
 
   strKennitala = ""
   if strEmployeeID.lower() != "name":
