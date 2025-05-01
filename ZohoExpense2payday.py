@@ -694,8 +694,9 @@ def main():
           LogEntry(APIResp[0])
 
       strEntryID = dictReader["Entry Number"]
-      LogEntry("Working on: {} - {} - {}".format(
-          dictReader["Expense Description"],dictReader["Expense Category"],dictReader["Expense Item Date"]          ))
+      LogEntry("Working on: {} - Entry {} - Vendor: {} - Milage Type: {}".format(
+          dictReader["Expense Description"],dictReader["Entry Number"],dictReader["Expense Item Date"],
+          dictReader["Merchant Name"],dictReader["Mileage Type"]))
       lstAttachments = ListAttachments(strAttachments, dictReader["Entry Number"] + "*")
       dictMultipart = {}
       for index,strfile in enumerate(lstAttachments):
