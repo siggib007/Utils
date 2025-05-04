@@ -661,6 +661,7 @@ def main():
   strEntryID = ""
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictReader in objReader:
+    LogEntry("Processing entry#: {} is reimbursable: {}".format(dictReader["Entry Number"],dictReader["Is Reimbursable"]), 5)
     if not dictReader["Is Reimbursable"]:
       continue
     if dictReader["Category Account Code"] in dictAcctRef:
@@ -695,8 +696,8 @@ def main():
 
       strEntryID = dictReader["Entry Number"]
       LogEntry("Working on: {} - Entry {} - Vendor: {} - Milage Type: {}".format(
-          dictReader["Expense Description"],dictReader["Entry Number"],dictReader["Expense Item Date"],
-          dictReader["Merchant Name"],dictReader["Mileage Type"]))
+          dictReader["Expense Description"],dictReader["Entry Number"],dictReader["Merchant Name"],
+          dictReader["Mileage Type"],dictReader["Merchant Name"]))
       lstAttachments = ListAttachments(strAttachments, dictReader["Entry Number"] + "*")
       dictMultipart = {}
       for index,strfile in enumerate(lstAttachments):
