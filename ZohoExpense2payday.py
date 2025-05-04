@@ -662,7 +662,7 @@ def main():
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictReader in objReader:
     LogEntry("Processing entry#: {} is reimbursable: {}".format(dictReader["Entry Number"],dictReader["Is Reimbursable"]), 5)
-    if not dictReader["Is Reimbursable"]:
+    if dictReader["Is Reimbursable"] == "false":
       continue
     if dictReader["Category Account Code"] in dictAcctRef:
       strAcctID = dictAcctRef[dictReader["Category Account Code"]]
