@@ -719,9 +719,9 @@ def main():
           dictBody["creditor"]["ssn"] = dictReader["Employee Number"]
         else:
           dictBody["creditor"]["ssn"] = strKennitala
-        strDistance = float(dictReader["Distance"])
-        strMileage = str(int(dictReader["Mileage Rate"]))
-        strDescription= "Mileage for {} - {:.2f} {} @ {}".format(
+        strDistance = "{:.2f}".format(float(dictReader["Distance"])).replace(".",",")
+        strMileage = float(dictReader["Mileage Rate"])
+        strDescription= "Mileage for {} - {} {} @ {:.0f} kr/km".format(
           dictReader["Vehicle Name"],strDistance,dictReader["Mileage Unit"],strMileage)
         dictBody["comment"] = dictReader["Expense Description"]
 
