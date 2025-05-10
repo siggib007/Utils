@@ -544,7 +544,7 @@ def main():
     CleanExit("Attachments path {} does not exist".format(strAttachments))
   strAttachments = strAttachments.replace("\\", "/")
 
-  if not os.path.exists(strInfile):
+  if strInfile is None or not os.path.exists(strInfile):
     LogEntry("Input file {} does not exist".format(strInfile))
     strInfile = ""
 
