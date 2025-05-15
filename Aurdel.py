@@ -169,6 +169,22 @@ def LogEntry(strMsg, iLogLevel=0):
   objLogOut.flush()
   print(strMsg)
 
+def CleanExit(strMsg):
+  global objLogOut
+  if objLogOut is None:
+    print("Log file not open")
+  if objLogOut.closed == True:
+    print("Log file closed")
+
+  # Write to log file and console
+  strTimeStamp = time.strftime("%m-%d-%Y %H:%M:%S")
+  objLogOut.write("{0} : {1}\n".format(strTimeStamp, strMsg))
+  objLogOut.flush()
+  print(strMsg)
+  objLogOut.close()
+  print("Log closed")
+  sys.exit(1)
+
 def isInt(CheckValue):
     """
     function to safely check if a value can be interpreded as an int
@@ -587,9 +603,7 @@ def main():
     LogEntry ("\nPath '{0}' for data files didn't exists, so I create it!\n".format(strSaveFolder))
 
   if strCustID is None or strCompID is None or strAPIKey is None or strDeeplKey is None or strXchangeAPIKey is None or strXchangeAppID is None:
-    LogEntry("Unable to continue, missing customerid, companyid or one of the apikeys")
-    objLogOut.close()
-    sys.exit(1)
+    CleanExit("Unable to continue, missing customerid, companyid or one of the apikeys")
 
   dictXchange = FetchXchange("EUR", "ISK")
   if "ISK" in dictXchange:
@@ -597,9 +611,8 @@ def main():
     fXchange = float(dictXchange["ISK"])
     fXchange = round(fXchange, 2)
   else:
-    LogEntry("Unable to get exchange rate for ISK")
-    objLogOut.close()
-    sys.exit(1)
+    CleanExit("Unable to get exchange rate for ISK")
+
   LogEntry("Markup is set to {}%".format(iMarkup))
   if args.input is None:
      strInput = getInput("Please enter part number to process: ")
@@ -607,23 +620,18 @@ def main():
       strInput = args.input.strip()
 
   if strInput == "":
-    LogEntry("Nothing to process, exiting")
-    objLogOut.close()
-    sys.exit(1)
+    CleanExit("Nothing to process, exiting")
+
   LogEntry("Processing part number(s): {}".format(strInput))
   strXML = FetchXML(strInput)
   try:
     dictInput = xmltodict.parse(strXML)
   except xml.parsers.expat.ExpatError as err:
     dictInput={}
-    LogEntry("Expat Error: {}\n{}".format(err,strXML[:99]))
-    objLogOut.close()
-    sys.exit(1)
+    CleanExit("Expat Error: {}\n{}".format(err,strXML[:99]))
 
   if "Error" in dictInput.keys():
-    LogEntry("Error {} in response:{}\n{}".format(dictInput["Error"]["Code"],dictInput["Error"]["Info"],dictInput["Error"]["Details"]))
-    objLogOut.close()
-    sys.exit(1)
+    CleanExit("Error {} in response:{}\n{}".format(dictInput["Error"]["Code"],dictInput["Error"]["Info"],dictInput["Error"]["Details"]))
 
   if "items" in dictInput["database"]["DELTACO.SE"]["data"]:
     dictItems = dictInput["database"]["DELTACO.SE"]["data"]["items"]["item"]
@@ -656,8 +664,9 @@ def main():
   LogEntry("CSV output saved to {}".format(strOutFile))
 
   LogEntry("Done!")
-  objLogOut.close()
-  print("Log closed")
+  LogEntry("Total time spent waiting for API calls: {} seconds".format(iTotalSleep))
+  CleanExit("Done processing, total time: {} seconds".format(round(time.time() - tLastCall - iTotalSleep, 2)))
+
 
 
 if __name__ == '__main__':
