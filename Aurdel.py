@@ -610,7 +610,7 @@ def main():
     LogEntry("Nothing to process, exiting")
     objLogOut.close()
     sys.exit(1)
-
+  LogEntry("Processing part number(s): {}".format(strInput))
   strXML = FetchXML(strInput)
   try:
     dictInput = xmltodict.parse(strXML)
