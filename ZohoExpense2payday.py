@@ -491,7 +491,7 @@ def main():
   strConf_File = args.config
   iVerbose = args.verbosity
   print("Logs saved to {}".format(strLogFile))
-  objLogOut = open(strLogFile, "w", 1)
+  objLogOut = GetFileHandle(strLogFile, "w")
   LogEntry("Starting up script {} on {}\n".format(strScriptName, strScriptHost))
   LogEntry("Verbosity set to {}".format(iVerbose))
   LogEntry("conf file set to: {}".format(strConf_File))
@@ -524,6 +524,8 @@ def main():
 
   if strBaseURL is None or strClientID is None or strClientSecret is None:
     CleanExit("No URL or API auth config, exiting")
+
+  LogEntry ("Using API URL: {}".format(strBaseURL))
 
   if FetchEnv("ATTACHMENTS") is not None:
     strAttachments = FetchEnv("ATTACHMENTS")
@@ -659,6 +661,7 @@ def main():
   strURL = "{}expenses".format(strBaseURL)
 
   strEntryID = ""
+  lstBadEntryIDs = []
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictReader in objReader:
     LogEntry("Processing entry#: {} is reimbursable: {}".format(dictReader["Entry Number"],dictReader["Is Reimbursable"]), 5)
@@ -691,6 +694,7 @@ def main():
         LogEntry("APIResp: {}".format(APIResp),5)
         if APIResp[0]["Success"] == False:
           LogEntry(APIResp)
+          lstBadEntryIDs.append(strEntryID)
         else:
           LogEntry(APIResp[0])
 
@@ -749,10 +753,12 @@ def main():
   LogEntry("APIResp: {}".format(APIResp),5)
   if APIResp[0]["Success"] == False:
     LogEntry(APIResp)
+    lstBadEntryIDs.append(strEntryID)
   else:
     LogEntry(APIResp[0])
   objFileIn.close()
   LogEntry("Done processing file {}, file handle closed".format(strInfile))
+  LogEntry("Issues with the following entry IDs: {}".format(lstBadEntryIDs))
   objLogOut.close()
   print("Log file closed")
 
