@@ -280,7 +280,7 @@ def chkdir(strDir):
   else:
     return True
 
-def GetFileHandle(strFileName, strperm):
+def GetFileHandle(strFileName, strperm, strNewLine="\n"):
   """
   This wraps error handling around standard file open function
   Parameters:
@@ -301,9 +301,9 @@ def GetFileHandle(strFileName, strperm):
 
   try:
     if len(strperm) > 1:
-      objFileHndl = open(strFileName, strperm, encoding="utf-8")
+      objFileHndl = open(strFileName, strperm, newline=strNewLine, encoding="utf-8")
     else:
-      objFileHndl = open(strFileName, strperm, encoding='utf-8-sig')
+      objFileHndl = open(strFileName, strperm, newline=strNewLine, encoding='utf-8-sig')
     return objFileHndl
   except PermissionError:
     LogEntry("unable to open output file {} for {}, "
@@ -757,8 +757,25 @@ def main():
   else:
     LogEntry(APIResp[0])
   objFileIn.close()
+  objFileIn = GetFileHandle(strInfile, "r")
+  iLoc = strInfile.rfind(".")
+  strFailedFile = strInfile[:iLoc] + "-failed" + ISO + strInfile[iLoc:]
+  objFileOut = GetFileHandle(strFailedFile, "w", strNewLine="")
+  objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
+  objWriter = csv.DictWriter(objFileOut, fieldnames=objReader.fieldnames, delimiter=csvDelim)
+  if objReader.fieldnames is not None:
+    objWriter.writeheader()
+  for dictReader in objReader:
+    LogEntry("Checking entry ID: {}".format(dictReader["Entry Number"]), 1)
+    if dictReader["Entry Number"] in lstBadEntryIDs:
+      objWriter.writerow(dictReader)
+      LogEntry("Wrote bad entry ID: {} to failed file".format(dictReader["Entry Number"]), 1)
+  objFileOut.close()
+  objFileIn.close()
+
   LogEntry("Done processing file {}, file handle closed".format(strInfile))
   LogEntry("Issues with the following entry IDs: {}".format(lstBadEntryIDs))
+  LogEntry("Bad entries written to file: {}".format(strFailedFile))
   objLogOut.close()
   print("Log file closed")
 
