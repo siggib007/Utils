@@ -760,24 +760,29 @@ def main():
   else:
     LogEntry(APIResp[0])
   objFileIn.close()
-  objFileIn = GetFileHandle(strInfile, "r")
-  iLoc = strInfile.rfind(".")
-  strFailedFile = strInfile[:iLoc] + "-failed" + ISO + strInfile[iLoc:]
-  objFileOut = GetFileHandle(strFailedFile, "w", strNewLine="")
-  objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
-  objWriter = csv.DictWriter(objFileOut, fieldnames=objReader.fieldnames, delimiter=csvDelim)
-  if objReader.fieldnames is not None:
-    objWriter.writeheader()
-  for dictReader in objReader:
-    LogEntry("Checking entry ID: {}".format(dictReader["Entry Number"]), 1)
-    if dictReader["Entry Number"] in lstBadEntryIDs:
-      objWriter.writerow(dictReader)
-      LogEntry("Wrote bad entry ID: {} to failed file".format(dictReader["Entry Number"]), 1)
-  objFileOut.close()
-  objFileIn.close()
+
+  if len(lstBadEntryIDs) == 0:
+    LogEntry("All entries processed successfully")
+  else:
+    LogEntry("Issues with the following entry IDs: {}".format(lstBadEntryIDs))
+    objFileIn = GetFileHandle(strInfile, "r")
+    iLoc = strInfile.rfind(".")
+    strFailedFile = strInfile[:iLoc] + "-failed" + ISO + strInfile[iLoc:]
+    objFileOut = GetFileHandle(strFailedFile, "w", strNewLine="")
+    objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
+    objWriter = csv.DictWriter(objFileOut, fieldnames=objReader.fieldnames, delimiter=csvDelim)
+    if objReader.fieldnames is not None:
+      objWriter.writeheader()
+    for dictReader in objReader:
+      LogEntry("Checking entry ID: {}".format(dictReader["Entry Number"]), 1)
+      if dictReader["Entry Number"] in lstBadEntryIDs:
+        objWriter.writerow(dictReader)
+        LogEntry("Wrote bad entry ID: {} to failed file".format(dictReader["Entry Number"]), 1)
+    objFileOut.close()
+    objFileIn.close()
 
   LogEntry("Done processing file {}, file handle closed".format(strInfile))
-  LogEntry("Issues with the following entry IDs: {}".format(lstBadEntryIDs))
+
   LogEntry("Bad entries written to file: {}".format(strFailedFile))
   objLogOut.close()
   print("Log file closed")
