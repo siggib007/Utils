@@ -605,12 +605,14 @@ def main():
 
   strURL = "{}auth/token".format(strBaseURL)
 
+  LogEntry("Requesting access token")
   APIResp = MakeAPICall(strURL, dictHeader, strMethod, dictBody)
   if APIResp[0]["Success"] == False:
     CleanExit(APIResp)
   else:
     strAccessToken = APIResp[1]["accessToken"]
 
+  LogEntry("Successfully obtained access token")
   strMethod = "get"
   dictHeader["Authorization"] = "Bearer {}".format(strAccessToken)
   strURL = "{}accounting/accounts".format(strBaseURL)
@@ -625,6 +627,7 @@ def main():
       strAcctCode = dictAccount["code"]
       dictAcctRef[strAcctCode] = strAcctID
 
+  LogEntry("Fetched {} accounts from Payday".format(len(dictAcctRef)))
   lstBadAccctCodes = []
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictReader in objReader:
