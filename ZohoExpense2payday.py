@@ -781,10 +781,11 @@ def main():
         LogEntry("Wrote bad entry ID: {} to failed file".format(dictReader["Entry Number"]), 1)
     objFileOut.close()
     objFileIn.close()
+    LogEntry("Bad entries written to file: {}".format(strFailedFile))
 
   LogEntry("Done processing file {}, file handle closed".format(strInfile))
 
-  LogEntry("Bad entries written to file: {}".format(strFailedFile))
+  
   objLogOut.close()
   print("Log file closed")
 
