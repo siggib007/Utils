@@ -632,6 +632,8 @@ def main():
   lstBadAccctCodes = []
   objReader = csv.DictReader(objFileIn, delimiter=csvDelim)
   for dictReader in objReader:
+    if "Category Account Code" not in dictReader:
+      CleanExit("Unable to find Category Account Code column in the input file, please check the file and try again")
     if dictReader["Category Account Code"] not in dictAcctRef:
       if dictReader["Category Account Code"] not in lstBadAccctCodes:
         lstBadAccctCodes.append(dictReader["Category Account Code"])
@@ -785,7 +787,7 @@ def main():
 
   LogEntry("Done processing file {}, file handle closed".format(strInfile))
 
-  
+
   objLogOut.close()
   print("Log file closed")
 
